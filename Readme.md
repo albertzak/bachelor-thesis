@@ -17,7 +17,7 @@ Whenever I discover something interesting, I save scraps, copy/pastes, quotes, e
 The LaTeX sources are compiled to PDF on [Travis CI](https://travis-ci.org/albertzak/bachelor-thesis), and are automatically uploaded to the [releases page](https://github.com/albertzak/bachelor-thesis/releases) of this repository.
 
 
-The project's code will live under the [beamup-io organization](https://github.com/beamup-io)
+The project's code will live under the [beamup-io organization](https://github.com/beamup-io).
 
 ### Why?
 
