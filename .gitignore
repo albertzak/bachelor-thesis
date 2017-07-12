@@ -1,6 +1,9 @@
 ## Generated output file:
 thesis.pdf
 
+## Compiled code examples:
+*.beam
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
