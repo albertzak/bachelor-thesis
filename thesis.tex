@@ -1,13 +1,44 @@
 \documentclass[12pt,a4paper,oneside]{book}
 
+\usepackage[pdftex,
+            pdfauthor={Albert Zak},
+            pdftitle={Continuous Deployment of Erlang/OTP Applications},
+            pdfsubject={Bachelor's Thesis}]{hyperref}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{geometry}
+\usepackage{bookmark}
+\usepackage{listings}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
 
+\lstset{
+  language=erlang,
+  numbers=left,
+  numberstyle=\small\color{lightgray},
+  basicstyle=\ttfamily,
+  frame=tb
+}
+
+\pdfpageheight=297mm
+\pdfpagewidth=210mm
 \geometry{a4paper, left=30mm, right=25mm, top=30mm, bottom=30mm}
 
 \begin{document}
 
-Hello, Joe. Hello, Mike. Hello, Robert.
+\frontmatter{}
+
+\tableofcontents{}
+
+\mainmatter{}
+
+\include{introduction}
+
+\include{erlang}
+\include{otp}
+\include{architecture}
+
+\include{related-work}
+\include{future-work}
+\include{conclusion}
 
 \end{document}
