@@ -7,3 +7,12 @@ services:
 
 script:
   - ./latexmk -pdf thesis
+
+deploy:
+  provider: releases
+  api_key:
+    secure: Jc15FA2LsBSKyRzG8Axa6YkEymTDK1eHtLD6+nsaFxRZkNBbM3ohTOKxwkagB5Gp5sHJ0IK/GeuMgQJZBr3llbUctV3DkD+CTR3tJDBxBjR2z/4PThthw1iY7sLVPKytfXprhvWC7pZaCYOUCezpTK5BykprtZwf1PRPAzxwhPK17BvtkykVNOUk6AGSBeeOcHESYgCvD9g+823UEAXSPQPrNgD1yWRlIwBR+q7pAksC2ug6Sh/VuZ2FmygUUQF28ywL+ACTFLgsL5xdh2uX3wel54BiyFLwG2dngoIvIy1eQRcA4tfTjHS9yjG2L2UEHHGC7WFhR/ZE7RqQPh6pjDgWMxmH+mPItojTMurLx8fGtuAClxgS+7u2wlDKxzgckGTCF+OQi/EiCRSWXUqw+p7RGQYU5wd9lYOmFZqQdvh8KWO8v39vlbi5CP1ykoD7nn8QTg/luxbbC1nwf/LooW/ICOHvT0zp+LQ+SlqXCQmS1CW9nXwASxFOSzbXSWqThJwRRu7SointnYQCb2JnX2qQDU/ghgw1VBiEBAokcpVVnRU4Z5jzepufJY7fkgt5z9OWiWr7MG1ygilDq/5oe6YPJeEPcByrHSJQ7xSXbQvte2WIhEmA1MMvebNt+NAou24lUIMony3EoxZUPDhRY7PqEI1aJm2izDPT0Op26+Q=
+  file: thesis.pdf
+  skip_cleanup: true
+  on:
+    repo: albertzak/bachelor-thesis
