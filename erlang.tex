@@ -2,7 +2,16 @@
 
 \section{Example}
 
-\lstinputlisting[caption=Example of a hot-upgradable Erlang Process, firstline=4]{loop_example.erl}
+\lstinputlisting[
+  label={lst:loop_example},
+  caption={Example of a hot-upgradable Erlang Process},
+  firstline=4
+]{loop_example.erl}
+
+Listing~\ref{lst:loop_example} shows how state is passed between iterations of a server loop.
+\lstinline{spawn_link/3} atomically spawns a process and links it to the calling process, so that the calling process is notified when the spawned process crashes.
+
+The spawn function takes the name of a module, the name of the function to run, and a list of arbitrary arguments. This triplet pointing to a function of a module and giving its arguments is commonly called \acrfull{mfa}.
 
 \section{Limitations of Hot Code Loading}
 

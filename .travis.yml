@@ -11,6 +11,9 @@ branches:
 
 script:
   - ./latexmk -pdf thesis
+  - ./makeglossaries -pdf thesis
+  - ./latexmk -pdf thesis
+  - ./latexmk -pdf thesis
 
 deploy:
   provider: releases

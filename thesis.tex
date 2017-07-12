@@ -10,6 +10,10 @@
 \usepackage{bookmark}
 \usepackage{listings}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage[acronym]{glossaries}
+
+\makeglossaries{}
+\input{glossary}
 
 \lstset{
   language=erlang,
@@ -28,6 +32,8 @@
 \frontmatter{}
 
 \tableofcontents{}
+
+\printglossary[nonumberlist,type=\acronymtype]
 
 \mainmatter{}
 
