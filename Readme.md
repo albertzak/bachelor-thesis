@@ -1,6 +1,6 @@
 [![Travis](https://img.shields.io/travis/albertzak/bachelor-thesis.svg)](https://travis-ci.org/albertzak/bachelor-thesis)
 
-[![PDF Download](https://img.shields.io/badge/download-latest%20pdf-blue.svg)](https://github.com/albertzak/bachelor-thesis/releases)
+[![PDF Download](https://img.shields.io/badge/download-latest%20pdf-blue.svg)](https://github.com/albertzak/bachelor-thesis/releases/latest)
 
 
 ## Downtime-free Continuous Deployment of Erlang/OTP Applications
