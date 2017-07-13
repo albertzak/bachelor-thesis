@@ -10,10 +10,7 @@ branches:
     - master
 
 script:
-  - ./latexmk -pdf thesis
-  - ./makeglossaries -pdf thesis
-  - ./latexmk -pdf thesis
-  - ./latexmk -pdf thesis
+  - ./build
 
 deploy:
   provider: releases
