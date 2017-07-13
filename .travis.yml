@@ -10,7 +10,7 @@ branches:
     - master
 
 script:
-  - ./build
+  - ./build.sh
 
 deploy:
   provider: releases
