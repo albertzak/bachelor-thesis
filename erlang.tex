@@ -14,9 +14,12 @@ The \lstinline{spawn_link/3} function atomically spawns a process and links it t
 
 Its three arguments reference the function to run, including the arguments. Such triplets are commonly called \acrfull{mfa}. Note that \lstinline|?MODULE| is a macro which is expanded to the name of the current module. Here, the \lstinline{loop/1} function is given an initial state of \lstinline{0}. When the process receives a message matching the pattern of the tuple \lstinline|{increment, _}|, it calculates the new state, responds, and applies the new state to itself in a tail-recursive call.
 
-Calling the \acrfull{bif} \lstinline|c/1| compiles and loads a new version of a module into memory. However, any processes spawned so far will continue to run the old version of the code. Note that the Erlang \acrshort{vm} keeps no more than two pointers to the executable code for each module: One for the old, and one for the new. If a third version of a module is loaded, any processes running the oldest module are forcibly killed. The only way to switch a process to run a new version of a module is via a fully-qualified call. By prefixing the function call with the module name, execution happens in the newest loaded version of the module. Calling all functions in a fully-qualified way to always run the newest code would be possible; however doing so would make it impossible to transform state between versions.
+Calling the \acrfull{bif} \lstinline|c/1| compiles and loads a new version of a module into memory.
+However, any processes spawned so far will continue to run the old version of the code. Note that the Erlang \acrshort{vm}'s code server keeps no more than two pointers to the executable code for each module: One for the old, and one for the current. If a third version of a module is loaded, any processes running the old code are forcibly killed. The only way to switch a process to run a new version of a module is via a \emph{fully-qualified} or \emph{external} call. By prefixing the function call with the module name, the newest loaded version of the module is executed. Calling all functions in a fully-qualified way to always run the newest code would be possible; however doing so would make it impossible to transform state between versions.
 
-In this example, when the process receives a \lstinline{code_change} message, it may transform its current state into the form that the new version expects. After the state transformation, the process switches itself over to the new module via a fully-qualified call.
+In this example, when the process receives a \lstinline{upgrade} message, it may use a fully-qualified call to the new version's upgrade function. The upgrade function transforms the current state into the format that the new version expects. After the state transformation, the process switches itself over to the new module.
+
+
 
 \section{Limitations of Hot Code Loading}
 
