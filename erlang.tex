@@ -25,9 +25,23 @@ In this example, when the process receives a \lstinline{upgrade} message, it may
 
 \subsection{Receive with No Timeout}
 
+To perform a hot code swap of a module, any processes that run this module's code must be suspended. The \acrshort{vm} can only preempt processes at \emph{reductions}; that is when the process calls any function.\footnote{The term \emph{reduction} comes from Erlang's Prolog heritage. Reductions are roughly equal to function calls, however there are some \acrshort{bif}s that don't count as reductions.} When a process blocks while waiting for a message, it doesn't perform any reductions,  thus can't be suspended, and can't upgrade to the new version of the code.
+
+In practice, this is not a problem when implementing \acrshort{otp} behaviors such as generic servers, as they transparently handle timeouts and code change events. However, developers spoiled by \acrshort{otp} may forget that a plain \lstinline|receive| statement should have a timeout. It should be possible to statically analyze an Erlang codebase for such issues.
+
+
 \subsection{Messages in Mailboxes May Exist for a Long Time}
 
+Obvious.
+
+
 \subsection{Sharing Records Between Modules or Processes}
+
+% TODO: Why is this a problem?
+
+\cite{davis:talk} recommends disallowing public record definitions in Erlang header files (\lstinline|*.hrl|). However, as of the time of publication no public tools exist to statically analyze an erlang codebase for public record definitions. Instead, records that need to be accessible to multiple modules or processes should be encapsulated by their own module. This wrapper module provides functions to get and set fields.
+
+
 
 \subsection{Anonymous Functions}
 
