@@ -35,12 +35,15 @@ In practice, this is not a problem when implementing \acrshort{otp} behaviors su
 Obvious.
 
 
-\subsection{Sharing Records Between Modules or Processes}
+\subsection{Records}
 
-% TODO: Why is this a problem?
+Erlang developers often use records to keep complex state. They are nothing but syntactic sugar over tuples. When tuples get too large (eg. more than three elements), it gets confusing to pattern match against elements by index. Erlang records are a way to define names for the elements of a tuple. Using records allows to conveniently pattern match against specific fields by a name instead of their index.
 
-\cite{davis:talk} recommends disallowing public record definitions in Erlang header files (\lstinline|*.hrl|). However, as of the time of publication no public tools exist to statically analyze an erlang codebase for public record definitions. Instead, records that need to be accessible to multiple modules or processes should be encapsulated by their own module. This wrapper module provides functions to get and set fields.
+Record declarations are static, they can't be changed at runtime. In fact, records don't even exist at runtime; they are converted to tuples at compile time. There is no language support for changing the structure of a record via a hot upgrade. Records are not versioned. If a record declaration is changed between module versions, an existing record can't be parsed by the new version of the module.
 
+Records should be specified local to a single module, but they can also be defined in Erlang header files (\lstinline|*.hrl|) that are shares between modules. \cite{davis:talk} recommends disallowing record definitions in Erlang header files. However, as of the time of publication no public tools exist to statically analyze an erlang codebase for public record definitions. Instead, records that need to be accessible to multiple modules or processes should be encapsulated by their own module. This wrapper module provides functions to get and set fields.
+
+Since version 17, Erlang has \emph{maps}--a first class \emph{associative array} (or \emph{"dictionary"}) data type that allows pattern matching and is more performant than the other key-value data structures\footnote{Key-Value Dictionary as Ordered List (\lstinline|orddict|), Key-Value Dictionary (\lstinline|dict|), General Balanced Trees (\lstinline|gb_trees|)} in Erlang. Maps are designed as a replacement for records, especially for organizing dynamic data such as the state of a process.
 
 
 \subsection{Anonymous Functions}
