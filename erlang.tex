@@ -14,10 +14,11 @@ The \lstinline{spawn_link/3} function atomically spawns a process and links it t
 
 Its three arguments reference the function to run, including the arguments. Such triplets are commonly called \acrfull{mfa}. Note that \lstinline|?MODULE| is a macro which is expanded to the name of the current module. Here, the \lstinline{loop/1} function is given an initial state of \lstinline{0}. When the process receives a message matching the pattern of the tuple \lstinline|{increment, _}|, it calculates the new state, responds, and applies the new state to itself in a tail-recursive call.
 
-Calling the \acrfull{bif} \lstinline|c/1| compiles and loads a new version of a module into memory.
-However, any processes spawned so far will continue to run the old version of the code. Note that the Erlang \acrshort{vm}'s code server keeps no more than two pointers to the executable code for each module: One for the old, and one for the current. If a third version of a module is loaded, any processes running the old code are forcibly killed. The only way to switch a process to run a new version of a module is via a \emph{fully-qualified} or \emph{external} call. By prefixing the function call with the module name, the newest loaded version of the module is executed. Calling all functions in a fully-qualified way to always run the newest code would be possible; however doing so would make it impossible to transform state between versions.
+Calling the \acrfull{bif} \lstinline|c/1| compiles and loads a new version of a module into memory. However, any processes spawned so far will continue to run the old version of the code. Note that the Erlang \acrshort{vm}'s code server keeps no more than two pointers to the executable code for each module: One for the old, and one for the current. When a new version of a module is loaded, that new code becomes "current", and the existing code becomes "old". The old code is kept in memory as long as there are processes that run it. If a third version of a module is loaded, any processes running the old code are forcibly killed.
 
-In this example, when the process receives a \lstinline{upgrade} message, it may use a fully-qualified call to the new version's upgrade function. The upgrade function transforms the current state into the format that the new version expects. After the state transformation, the process switches itself over to the new module.
+The only way for a process to switch itself to run a new version of a module is via a \emph{fully-qualified} or \emph{external} call. By prefixing the function call with the module name, the newest loaded version of the module is executed. Calling all functions in a fully-qualified way to always run the newest code would be possible; however doing so would make it impossible to transform state between versions.
+
+In this example, when the process receives a \lstinline{upgrade} message, it may use a fully-qualified call to the new version's upgrade function. The upgrade function transforms the current state into the format that the new version expects. In this example, the state is just passed through as-is. After the state transformation, the process switches itself over to the new module.
 
 
 
@@ -28,11 +29,6 @@ In this example, when the process receives a \lstinline{upgrade} message, it may
 To perform a hot code swap of a module, any processes that run this module's code must be suspended. The \acrshort{vm} can only preempt processes at \emph{reductions}; that is when the process calls any function.\footnote{The term \emph{reduction} comes from Erlang's Prolog heritage. Reductions are roughly equal to function calls, however there are some \acrshort{bif}s that don't count as reductions.} When a process blocks while waiting for a message, it doesn't perform any reductions, thus can't be suspended, and can't upgrade to the new version of the code.
 
 In practice, this is not a problem when implementing \acrshort{otp} behaviors such as generic servers, as they transparently handle timeouts and code change events. However, developers spoiled by \acrshort{otp} may forget that a plain \lstinline|receive| statement should have a timeout. It may be possible to statically analyze an Erlang codebase for such issues.
-
-\subsection{Messages in Mailboxes May Exist for a Long Time}
-
-Obvious.
-
 
 \subsection{Modifying the Structure of Records}
 
@@ -54,5 +50,4 @@ State may be implicitly passed to the callback in a \emph{closure}. This must no
 \cite{davis:talk} reports that the use of anonymous functions is the most common cause of failed upgrades; and recommends to avoid passing them as long-lived callbacks between processes. Instead, the calling module should specify the callback function in fully-qualified form. The calling module can pass additional arguments as \lstinline|{M,F,A}|; and the callee must then pass through the supplied arguments to the callback, including any additional data, such as the result of the remote call.
 
 However, as such pass-though data is of no concern to the callee, \cite{carlsson:parameterized} argued that it should not affect the implementation of the callee. He proposed to add \emph{parameterized modules} (also called \emph{"abstract modules"}) to Erlang. An experimental implementation made it possible, as in Object Oriented Programming, to define modules with free variables, call a constructor function to instantiate them while passing arguments, and pass references to such module instances as callbacks.
-However, parameterized module support was never officially documented and was removed in version R16.
-\footnote{Commit to the Erlang/OTP Repository; \url{https://github.com/erlang/otp/commit/35adf88290339ecdbbcd0a1290032d599bda26c4}, accessed August 20, 2017}\footnote{Note that Erlang/OTP releases before 17.0 followed the version scheme \lstinline|R<major>[B<minor>]|}
+However, parameterized module support was never officially documented and was removed\footnote{Commit to the Erlang/OTP Repository; \url{https://github.com/erlang/otp/commit/35adf88290339ecdbbcd0a1290032d599bda26c4}, accessed August 20, 2017} in version R16\footnote{Note that Erlang/OTP releases before 17.0 followed the version scheme \lstinline|R<major>[B<minor>]|}.
