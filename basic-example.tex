@@ -1,0 +1,19 @@
+\section{Example}
+
+\lstinputlisting[
+  label={lst:loop_example},
+  caption={Example of a hot-upgradable Erlang Process},
+  firstline=4
+]{loop_example.erl}
+
+Listing~\ref{lst:loop_example} shows how state is passed between iterations of a server loop.
+
+The \lstinline{spawn_link/3} function atomically spawns a process and links it to the caller to be notified when the spawned process crashes.
+
+Its three arguments reference the function to run, including the arguments. Such triplets are commonly called \acrfull{mfa}. Note that \lstinline|?MODULE| is a macro which is expanded to the name of the current module. Here, the \lstinline{loop/1} function is given an initial state of \lstinline{0}. When the process receives a message matching the pattern of the tuple \lstinline|{increment, _}|, it calculates the new state, responds, and applies the new state to itself in a tail-recursive call.
+
+Calling the \acrfull{bif} \lstinline|c/1| compiles and loads a new version of a module into memory. However, any processes spawned so far will continue to run the old version of the code. Note that the Erlang \acrshort{vm}'s code server keeps no more than two pointers to the executable code for each module: One for the old, and one for the current. When a new version of a module is loaded, that new code becomes "current", and the existing code becomes "old". The old code is kept in memory as long as there are processes that run it. If a third version of a module is loaded, any processes running the old code are forcibly killed.
+
+The only way for a process to switch itself to run a new version of a module is via a \emph{fully-qualified} or \emph{external} call. By prefixing the function call with the module name, the newest loaded version of the module is executed. Calling all functions in a fully-qualified way to always run the newest code would be possible; however doing so would make it impossible to transform state between versions.
+
+In this example, when the process receives a \lstinline{upgrade} message, it may use a fully-qualified call to the new version's upgrade function. The upgrade function transforms the current state into the format that the new version expects. In this example, the state is just passed through as-is. After the state transformation, the process switches itself over to the new module.
