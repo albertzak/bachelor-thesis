@@ -1,5 +1,19 @@
+\section{Structure of Erlang/OTP Projects}
+
+The smallest unit of organization is the \emph{module}, which is a file ending in \lstinline|*.erl| containing function definitions and module attributes. Note that modules are not namespaced in Erlang\footnote{Elixir works around this by prefixing modules with \lstinline|Elixir.| and concatenating the names of nested modules with a period.}. Modules related to each other are packaged as an \emph{OTP Application}. There are two kinds of Applications:
+
+\begin{enumerate}
+  \item \emph{Active Applications} have their own lifecycle, and include their own \emph{root supervisor} that manages the processes contained within. They are explicitly started as part of another Application. Active Applications are often referred to as just \emph{Applications}.\cite{logan:otp}
+
+  \item \emph{Library Applications} are a collection of related modules that can be imported by other Applications. They are not meant to be started as a separate entity; they passively provide functionality.
+\end{enumerate}
+
+
+It is also possible to start an application as an \emph{included application}, which starts it under [another Application's] own OTP supervisor with its own strategy to restart it.\cite{ferd:anger} Note that there is no standard packaged format but plain directories, and that both Applications and Library Applications share the same directory structure.
+
+
 \section{OTP Releases}
-An \emph{\acrshort{otp} Release} is a versioned set of compiled Applications and their dependencies, metadata, and lifecycle scripts. A Release may include the \acrfull{erts} pinned to a specific version. The applications that make up a Release are started on one Erlang \emph{Node}, which is an \acrshort{os}-level process running the Release on top of the Erlang \acrshort{vm}.
+An \emph{\acrshort{otp} Release} is a versioned set of compiled Applications and their dependencies, metadata, and lifecycle scripts. A production Erlang/OTP system usually consists of multiple Applications that may or may not depend on each other, all packaged and deployed together as a Release; usually distributed as a \lstinline|*.tar.gz| archive. The applications that make up a Release are started on one Erlang \emph{Node}, which is an \acrshort{os}-level process running the Release on top of the Erlang \acrshort{vm}.
 
 The Erlang/\acrshort{otp} distribution includes the \acrfull{sasl} application, which provides low-level services to help generate, package, and install \acrshort{otp} Releases. Specifically, the \lstinline|systools| module writes boot scripts, release upgrade files (\lstinline|relup|), and release packages (\lstinline|*.tar.gz|); while the \lstinline|release_handler| process is responsible for unpacking and installing a Release onto a running system. Consequently, Erlang/OTP systems that plan to use \acrshort{otp} facilities for hot code replacement must depend on \acrshort{sasl}.
 
