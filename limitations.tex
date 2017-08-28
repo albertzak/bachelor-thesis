@@ -8,6 +8,10 @@ To perform a hot code swap of a module, any processes that run this module's cod
 
 In practice, this is not a problem when implementing \acrshort{otp} behaviors such as generic servers, as they transparently handle timeouts and code change events. However, developers spoiled by \acrshort{otp} may forget that a plain \lstinline|receive| statement should have a timeout. It may be possible to statically analyze an Erlang codebase for such issues.
 
+\subsection{Dependencies and Ordering}
+
+Complicated or circular dependencies can make it difficult or even impossible to decide in which order things must be done without risking runtime errors during an upgrade or downgrade.\cite[352]{doc:otp} Dependencies can exist between modules, processes and nodes.
+
 \subsection{Keeping State in Records}
 
 Erlang developers often use \emph{Records} to keep complex state. They are nothing but syntactic sugar over tuples. When tuples get too large (eg. more than three elements), it gets confusing to pattern match against elements by index. Erlang records are a way to define names for the elements of a tuple. Using records allows to conveniently pattern match against specific fields by a name instead of their index.
