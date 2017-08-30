@@ -1,0 +1,34 @@
+\section{Automated Versioning}
+
+The version number of a release must uniquely identify a snapshot of the system's code and its dependencies. Up until now, developers had to manually edit version strings in various files each time they wished to create a release. The current process is error-prone and slow, leading to bigger, less focused releases that are harder to apply. The solution proposed in this section replaces numeric version strings with automatically generated cryptographic hashes of the changesets. Developers are relieved of coordinating versioning, and the system is able to provide uniqueness and identifiability guarantees.
+
+The Erlang/OTP release handling system expects version numbers to exist in various metadata files. Multiple books recommend to use traditional numeric version strings, as they usually can be parsed by some of the existing tooling.\cite[252, 322]{logan:otp, cesarini:otp, ferd}
+
+\subsection{Manually Incrementing Version Numbers}
+Currently, developers have to remember to manually increment version numbers before committing a change. This leads to various problems where multiple revisions of the code base share the same version number:
+
+\begin{enumerate}
+  \item If a developer forgets to increment the version number, different snapshots of the code base share the same version number, thus breaking uniqueness.
+  \item Multiple developers working on a single project in parallel may fail to coordinate the next increment, thus breaking uniqueness.
+\end{enumerate}
+
+\subsubsection{Storing Metadata in the Version String}
+Version strings have also been used to store various other meta-information about an artefact. Categorizing changes into major and minor based on the developer's assumptions of whether or not a changeset is backwards compatible can certainly be very useful for the consumers of library modules. In 2010, GitHub introduced Semantic Versioning and encouraged \emph{all} software projects to adopt it. However, \cite{rae:semver} found that the current mechanisms to signal interface instability are not used properly.
+
+\subsection{Numeric Versioning Schemes}
+On the surface, traditional version numbers seem to have a number of advantages over hashes: They are ordered, and they might provide some information about the release at a glance. However, total order is not guaranteed taking into account the above issues.
+
+\subsubsection{Advantages in Erlang/OTP}
+In regards to Erlang/OTP systems, one advantage of numeric versioning schemes is that Erlang has built-in support for comparing version strings. For example, if multiple versions of an application are available, Erlang picks the one with the highest version number. Additionally, application upgrade files (\lstinline|appup|) can specify not only one specific version to upgrade from or downgrade to; but may use regular expressions (regex) to define a range of acceptable source versions.\cite{cesarini:otp}
+
+\subsection{Cryptographic Versioning Schemes}
+Replacing traditional numeric version numbers with the cryptographic hash of a commit guarantees uniqueness and reliably links the release with the commit. Version number schemes differ between \acrfull{scm}s. We can't however simply write a commit hash into a version-controlled file, as there is no way to know the hash of a commit before committing.
+
+\subsubsection{Commit after Commit}
+One rudimentary workaround could be to follow with another commit immediately that writes the hash of the previous commit to the files that need updating. However, doing so would (1) pollute the commit history, and (2) create ambiguity when attempting to checkout the revision of the code as reported by a release.
+
+\subsubsection{The Solution to Release Versioning}
+The proposed solution is to keep version numbers out of the \acrshort{scm}. Any version-controlled metadata files must not define any version strings identifying any version-controlled code from the same repository. The canonical version string of a revision is the cryptographic commit hash, and is generated once and only after a changeset is finalized. The proposed pipeline is designed to integrate with the git \acrshort{scm} system. The SHA-1 hashes identifying git commits are dynamically inserted as version strings in application metadata files when building a release. The process is detailed in the section on deterministic builds.
+
+\subsubsection{Identifying Changed Sub-Applications}
+

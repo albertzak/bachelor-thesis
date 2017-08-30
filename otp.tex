@@ -14,9 +14,7 @@ It is also possible to start an application as an \emph{included application}, w
 
 \subsection{OTP Releases}
 
-A \emph{Release} is a versioned set of compiled Applications and their dependencies, metadata, and lifecycle scripts. A production Erlang/OTP system usually consists of multiple Applications that may or may not depend on each other, all packaged and deployed together as a Release; usually distributed as a \lstinline|*.tar.gz| archive. The applications that make up a Release are started on one Erlang \emph{Node}, which is an \acrshort{os}-level process running the Release on top of the Erlang \acrshort{vm}. A system that is transferred to and installed at another site is called a \emph{target system}.\cite[347]{d]oc:otp}
-
-A Release is described by a \emph{Release Resource File} \lstinline|*.rel|, which specifies the name and a version of the Release, pins the \acrshort{erts} to a specific version and lists the included applications at specific versions. The Release Resource File is compiled to \lstinline|*.script| and \lstinline|*.boot| files used by the \emph{release handler} process to start the system.
+A \emph{Release} is a versioned set of compiled Applications and their dependencies, metadata, and lifecycle scripts. A production Erlang/OTP system usually consists of multiple Applications that may or may not depend on each other, all packaged and deployed together as a sing release which is usually distributed as a \lstinline|*.tar.gz| archive. The applications that make up a release are started on one Erlang \emph{Node}, which is an \acrshort{os}-level process running the release on top of the Erlang \acrshort{vm}. A release is described by a \emph{Release Resource File} (\lstinline|*.rel|), which specifies the name and a version of the release, pins the \acrshort{erts} to a specific version and lists the included applications at specific versions. The Release Resource File is compiled to \lstinline|*.script| and \lstinline|*.boot| files used to start the system.
 
 
 \subsubsection{System Architecture Support Libraries}

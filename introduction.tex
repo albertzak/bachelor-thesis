@@ -12,7 +12,7 @@ Erlang/OTP Releases has first-class support for zero-downtime hot code upgrades.
 
 The Erlang/OTP release and deployment process requires manual interaction at many steps.
 A developer needs to touch various configuration files to edit version numbers.
-Existing build tools produce upgrade scripts (\emph{appups}) that sometimes need manual tweaking, such as rearranging instructions because of dependency issues.
+Existing build tools produce upgrade scripts that sometimes need manual tweaking, such as rearranging instructions because of dependency issues.
 Moreover, builds created on developer's machines are not deterministic. Tooling expects previously built releases to exist in specific directories on the local file system.
 Deployment is a manual multi-step process. Current best practices advocate the use of \lstinline{scp} to copy the built release to the production machines. Then one has to attach an Erlang shell to the running node and issue various commands to actually perform the upgrade. This is not an appropriate process for a modern Continuous Delivery pipeline.
 
