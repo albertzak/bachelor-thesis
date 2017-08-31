@@ -12,7 +12,12 @@
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
 \usepackage[singlespacing]{setspace}
 \usepackage[acronym,nopostdot,style=super,nonumberlist,nogroupskip]{glossaries}
+\usepackage{fancyhdr}
 
+\pagestyle{fancy}
+\fancyhf{}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0pt}
 
 \makeglossaries{}
 \input{glossary}
@@ -62,8 +67,6 @@ This chapter describes the reasoning behind the components, the general design d
 
 \include{future-work}
 \include{conclusion}
-
-\pagenumbering{gobble}
 
 \include{lists}
 
