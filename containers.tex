@@ -1,1 +1,16 @@
 \section{Deterministic Builds}
+
+\subsection{Building in Linux Containers}
+
+\subsubsection{The Command Line Interface Tool}
+Since all of the action happens inside containers, the \acrshort{cli} tool can be distributed as a single compact shell script. When the \acrshort{cli} tool is invoked, it acts as a thin wrapper around the Docker client. The script does little more than start a container, and set its environment variables and volume paths. Distributing a single shell script with only one dependency on the Docker client may ease adoption of the proposed tool among developers. Installing the tool on a \acrshort{ci} server can also be made trivial, as Listing \ref{lst:curlpipesh} shows.
+
+\begin{lstlisting}[
+  label={lst:curlpipesh},
+  caption={CLI tool installation command}
+]
+curl https://get.beamup.io/install | /bin/sh
+\end{lstlisting}
+
+A single line consisting of a controversial\footnote{\url{https://curlpipesh.tumblr.com}} chain of easily copy/pasteable shell commands can download the script and execute it.
+
