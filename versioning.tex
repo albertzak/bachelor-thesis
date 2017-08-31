@@ -28,7 +28,12 @@ Replacing traditional numeric version numbers with the cryptographic hash of a c
 One rudimentary workaround could be to follow with another commit immediately that writes the hash of the previous commit to the files that need updating. However, doing so would (1) pollute the commit history, and (2) create ambiguity when attempting to checkout the revision of the code as reported by a release.
 
 \subsubsection{The Solution to Release Versioning}
-The proposed solution is to keep version numbers out of the \acrshort{scm}. Any version-controlled metadata files must not define any version strings identifying any version-controlled code from the same repository. The canonical version string of a revision is the cryptographic commit hash, and is generated once and only after a changeset is finalized. The proposed pipeline is designed to integrate with the git \acrshort{scm} system. The SHA-1 hashes identifying git commits are dynamically inserted as version strings in application metadata files when building a release. The process is detailed in the section on deterministic builds.
+The proposed solution is to keep version numbers out of the \acrshort{scm} repository. Any version-controlled metadata files must not define any version strings identifying any version-controlled code from the same repository. The canonical version string of a revision is the cryptographic commit hash, and is generated once and only after a changeset is finalized. The proposed pipeline is designed to integrate with the git \acrshort{scm} system. The SHA-1 hashes identifying git commits are dynamically inserted as version strings in metadata files when building a release. All edits happen on a copy of the code, and are discarded when the build is finished, without ever being persisted in the repository. The process is detailed in the section on Deterministic Builds.
 
 \subsubsection{Identifying Changed Sub-Applications}
+Complex Erlang/OTP applications ("umbrella applications") are often split up into several sub-applications, that live in separate directories and are developed and deployed together. Another advantage of using commit hashes as version strings is that it becomes trivial to identify changed sub-applications by retrieving the last commit that changed any file inside a certain directory.
 
+\lstinputlisting[
+  label={lst:githash},
+  caption={Git command to retrieve the hash of the last commit made in a subdirectory of a repository}
+]{git_hash.sh}
