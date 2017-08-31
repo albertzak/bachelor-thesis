@@ -35,14 +35,14 @@ Complex Erlang/OTP applications ("umbrella applications") are often split up int
 
 \begin{lstlisting}[
   label={lst:githash},
-  caption={Git command to retrieve the hash of the last commit made in a subdirectory of a repository}
+  caption={Git command to retrieve the hash of the last commit made in a subdirectory}
 ]
 git rev-list -1 HEAD -- "$directory"
 \end{lstlisting}
 
 
 \subsubsection{Dealing With Dirty Working Trees}
-There is one issue with the above "temporary edit after commit" solution; when a developer edits a checked out copy, does not commit the changes, and invokes the proposed build pipeline. Git calls this situation a "dirty working tree", and it is a normal occurrence during development. The command given in Listing \ref{lst:githash} would still return the hash of the last commit, even though the state of the files in the working directory has changed since. The build system needs to be able to detect such situations.
+There is one issue with the above "temporary edit after commit" solution; when a developer edits a checked out copy, does not commit the changes, and invokes the proposed build pipeline. Git calls this situation a "dirty working tree", and it is a normal occurrence during development. The command given in Listing \ref{lst:githash} would still return the hash of the last commit, even though the state of the files in the working directory has changed since. The build system needs to be able to detect such situations. Since the proposed build pipeline is designed to be run on a \acrshort{ci} server, the only sensible course of action is to fail if the working tree is dirty.
 
 The build system first needs to invoke the command given in Listing \ref{lst:gitchanges} to determine if any changes were made to tracked (i.e. known to git) files. The exit code \lstinline|0| means that there were no differences, while \lstinline|1| indicates that some tracked files were changed.
 
