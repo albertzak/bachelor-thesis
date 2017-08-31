@@ -10,7 +10,9 @@
 \usepackage{bookmark}
 \usepackage{listings}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
-\usepackage[acronym]{glossaries}
+\usepackage[singlespacing]{setspace}
+\usepackage[acronym,nopostdot,style=super,nonumberlist,nogroupskip]{glossaries}
+
 
 \makeglossaries{}
 \input{glossary}
@@ -35,7 +37,10 @@
 
 \tableofcontents{}
 
+\renewcommand{\glsnamefont}[1]{\textbf{#1}}
+\doublespacing
 \printglossary[nonumberlist,type=\acronymtype]
+\singlespacing
 
 \mainmatter{}
 
@@ -53,6 +58,7 @@ This chapter describes the reasoning behind the components, the general design d
 \input{design-goals}
 \input{versioning}
 \input{containers}
+\input{appups}
 
 \include{future-work}
 \include{conclusion}
