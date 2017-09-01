@@ -28,6 +28,7 @@ Replacing traditional numeric version numbers with the cryptographic hash of a c
 One rudimentary workaround could be to follow with another commit immediately that writes the hash of the previous commit to the files that need updating. However, doing so would (1) pollute the commit history, and (2) create ambiguity when attempting to checkout the revision of the code as reported by a release.
 
 \subsubsection{Temporary Edit After Commit}
+\label{tempeditaftercommit}
 The proposed solution is to keep version numbers out of the \acrfull{scm} repository. Any version-controlled metadata files must not define any version strings identifying any version-controlled code from the same repository. The canonical version string of a revision is its cryptographic commit hash, and is generated once and only after a changeset is finalized. The proposed pipeline is designed to integrate with the Git \acrshort{scm} system. The SHA-1 hashes identifying Git commits are dynamically inserted as version strings in metadata files when building a release. All edits happen on a copy of the code, and are discarded when the build is finished, without ever being persisted in the repository. The process is detailed in the section on Deterministic Builds.
 
 \subsubsection{Identifying Changed Sub-Applications}
