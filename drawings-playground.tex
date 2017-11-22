@@ -1,0 +1,63 @@
+\section{Drawings Playground}
+
+\begin{algorithmic}
+  \If {$i\geq maxval$}
+    \State $i\gets 0$
+  \Else
+    \If {$i+k\leq maxval$}
+      \State $i\gets i+k$
+    \EndIf
+  \EndIf
+\end{algorithmic}
+
+\begin{figure}
+  \begin{subfigure}[b]{\textwidth}
+    \centering
+    \begin{tikzpicture}
+      % Commit DAG
+      \gitDAG[grow right sep = 2em]{
+        A -- B -- C -- {
+          D -- F -- H,
+          C'[fill=gray!20] -- E' -- G' -- I'
+        } -- J,
+        F -- G',
+      };
+
+      % Tag reference
+      \gittag
+        [initial] % node name
+        {initial commit} % node text
+        {above=of A} % node placement
+        {A} % target
+
+      \gitremotebranch
+        [Bm]
+        {B\textsuperscript{master}}
+        {above=8em of B}
+        {B}
+      \gitremotebranch
+        [Cm]
+        {C\textsuperscript{master}}
+        {above=8em of C}
+        {C}
+      \gitremotebranch
+        [Cf]
+        {C\textsuperscript{feature}}
+        {above=11em of C'}
+        {C'}
+
+      \gitbranch
+        {master}
+        {above=of J}
+        {J}
+      \gitbranch
+        {feature}
+        {below=of I'}
+        {I'}
+      \gitHEAD
+        {above=of master}
+        {master}
+    \end{tikzpicture}
+    \subcaption{Commit graph with derived artifacts}
+  \end{subfigure}
+\end{figure}

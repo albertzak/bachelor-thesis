@@ -9,7 +9,12 @@
 \usepackage{geometry}
 \usepackage{bookmark}
 \usepackage{listings}
-\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage{subcaption}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
+\usepackage{xcolor-solarized}
+\usepackage{gitdags}
 \usepackage[singlespacing]{setspace}
 \usepackage[acronym,nopostdot,style=super,nonumberlist,nogroupskip]{glossaries}
 \usepackage{fancyhdr}
@@ -37,6 +42,8 @@
 \begin{document}
 
 \frontmatter{}
+
+\input{drawings-playground}
 
 \include{abstract}
 
