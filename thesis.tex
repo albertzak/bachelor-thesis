@@ -43,9 +43,7 @@
 
 \frontmatter{}
 
-\input{drawings-playground}
-
-\include{abstract}
+\include{sections/abstract}
 
 \tableofcontents{}
 
@@ -56,24 +54,12 @@
 
 \mainmatter{}
 
-\include{introduction}
-\include{related-work}
-
-\chapter{Hot Code Loading in Erlang}
-\input{basic-example}
-\input{limitations}
-\input{otp}
-
-\chapter{Proposed Design Decisions}
-This chapter describes the reasoning behind the components, the general design decisions, and how they play together to enable a highly automated Continuous Integration pipeline for the Erlang/OTP release handling process.
-
-\input{design-goals}
-\input{versioning}
-\input{containers}
-\input{appups}
-
-\include{future-work}
+\include{sections/introduction}
+\include{sections/implementation}
+\include{sections/discussion}
+\include{sections/related_future_work}
 \include{conclusion}
+
 
 \include{lists}
 

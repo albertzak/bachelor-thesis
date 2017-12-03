@@ -3,7 +3,7 @@
 [![PDF Download](https://img.shields.io/badge/download-latest%20pdf-blue.svg)](https://github.com/albertzak/bachelor-thesis/releases/latest)
 
 
-## Downtime-free Continuous Deployment of Erlang/OTP Applications
+## Design, Implementation and Evaluation of a Hands-off Build Pipeline for Erlang/OTP Projects.
 
 *(working title)*
 
@@ -15,7 +15,7 @@ Bachelor's Thesis<br>
 
 This is the first time I attempt to write a somewhat larger work.
 
-Whenever I discover something interesting, I save scraps, copy/pastes, quotes, etc. in the Apple Notes app. These are private for now. As soon as I feel that a thought emerges, I try to practice [free writing](https://en.wikipedia.org/wiki/Free_writing) inside this public [Google Doc](https://docs.google.com/document/d/1A2W1z9SY6Gm4ViYGpnO77m-5yJ29KECTWJvy6sMa7h4/edit?usp=sharing).
+Check out the planned outline in this [Google Doc](https://docs.google.com/document/d/1eI1Hk-A-a-q019rSu870DGjGTulVKOvgOHBFYBMnNyw/edit?usp=sharing).
 
 The LaTeX sources are compiled to PDF on [Travis CI](https://travis-ci.org/albertzak/bachelor-thesis), and are automatically uploaded to the [releases page](https://github.com/albertzak/bachelor-thesis/releases) of this repository.
 
