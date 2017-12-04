@@ -1,9 +1,11 @@
-\documentclass[12pt,a4paper,oneside]{book}
+\documentclass[12pt,a4paper,oneside]{article}
 
 \usepackage[pdftex,
             pdfauthor={Albert Zak},
-            pdftitle={Continuous Deployment of Erlang/OTP Applications},
-            pdfsubject={Bachelor's Thesis}]{hyperref}
+            pdftitle={Design, Implementation and Evaluation of a Hands-off Build Pipeline for Erlang/OTP Projects},
+            pdfsubject={Bachelor's Thesis},
+            hidelinks,
+            driverfallback=hypertex]{hyperref}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{geometry}
@@ -41,8 +43,6 @@
 
 \begin{document}
 
-\frontmatter{}
-
 \include{sections/abstract}
 
 \tableofcontents{}
@@ -52,14 +52,11 @@
 \printglossary[nonumberlist,type=\acronymtype]
 \singlespacing
 
-\mainmatter{}
-
 \include{sections/introduction}
 \include{sections/implementation}
 \include{sections/discussion}
 \include{sections/related_future_work}
 \include{conclusion}
-
 
 \include{lists}
 

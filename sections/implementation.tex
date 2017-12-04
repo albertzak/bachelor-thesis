@@ -1,0 +1,53 @@
+\section{Implementation}
+
+\subsection{Command Line Interface}
+The main entry point to the build tool \acrshort{cli} is a \lstinline|bash| script.
+
+\paragraph{Installation.} The recommended way to install the \acrshort{cli} tool is by downloading a \lstinline|bash| script and piping it to the shell. This is a pattern known as ``curl pipe sh'', and while common because of its simplicity, there are some security implications which are discussed in~\ref{sec:limitations}. A Content Delivery Network, \emph{Cloudflare}, is used to ensure the installer script is exclusively served via \acrshort{http} over \acrshort{tls}. When the installer detects it is being executed inside an interactive terminal session, it pauses for a few seconds to give the user a chance to abort installation. Next, the installer clones the \acrshort{cli} repository to the \lstinline|~/.beamup| folder of the current user's home directory. Note that cloning a repository keeps file permissions intact, including the executable bits that are set on the main \acrshort{cli} entry point script. At no point are super user permissions needed, consequently the installer first attempts to create a symbolic link to the \acrshort{cli} entry point, and optionally falls back to displaying instructions on how to add the just-installed tool to the executable path. Finally, to make sure that the installation was successful, the \acrshort{cli} tool is invoked for a self-test.
+
+\paragraph{Self-test.}
+
+
+\paragraph{Self-update.} Because the \acrshort{cli} tool is little more than a local clone of a remote repository, distributing and installing updates to the tool itself becomes as trivial as pulling changes from the remote. A convenience wrapper is provided.
+
+
+
+\paragraph{Transparent Container Invocation.} It is not always possible to start a clean container, as many \acrshort{ci} platforms confine the whole build to a container that has already been set up and started, allowing only limited configuration of the container's parameters. Clearly, the tool must be able to either operate inside an already-running \acrshort{ci} container, or transparently start a new container and pass control inside. First, the \acrshort{cli} entry point first attempts to detect where it is being called from by parsing the \emph{control group} file. While detection in this way is widespread, it is not recommended, since it would be relying on an implementation detail of the container runtime instead of a formal interface. However, work to add introspection capabilities is ongoing\footnote{\url{https://github.com/moby/moby/pull/26331}}. To provide a temporary solution until an interface is finalized and widely deployed, the tool checks for artifacts of common container runtime implementations: \emph{Docker}, \emph{\acrfull{lxc}}, and \emph{\acrfull{aws} \acrfull{ecs}}. If the tool is being run inside a container, execution is simply passed to the \emph{container entrypoint} along with all arguments --- assuming the container's environment is sufficiently correct, ie.~has the correct version of Erlang/OTP installed.
+
+
+\paragraph{Determining the Base Image.} When the tool is able to start a container to run the build in, it needs to consider the following two attributes: The requested version of Erlang/OTP, and the host's machine architecture. The Erlang/OTP version is read from the environment variable \lstinline{BEAMUP_ERLANG_VERSION}. Note that support for other \acrshort{beam} languages such as Elixir is handled within the \emph{container entrypoint}, and just needs the environment variable \lstinline{BEAMUP_ELIXIR_VERSION} to be passed through.
+
+Official builds of Erlang/OTP for various machine architectures are provided on the \emph{Docker Hub}. Such images are available under the namespace of the respective architecture identifiers as used by the \emph{Go} programming language. A challenge lies in reliably normalizing the machine architecture as reported by \lstinline|uname -m|. Note that since version \emph{17.06 Docker} implicitly pulls images for the correct architecture. Since the tool is designed to support \emph{Docker} down to version \emph{1.12}, it has to manually determine the architecture and map it to an image namespace identifier using the following normalization table.
+
+\begin{table}[h]
+  \setlength{\tabcolsep}{10pt}
+  \centering
+  \begin{tabular}{ r l }
+    Output of \lstinline|uname -m| & Identifier \\
+    \hline
+    \lstinline|arm arm32 armv7 armv7l armhfp| & \lstinline|arm32v7| \\
+    \lstinline|arm64 armv8 armv8b armv8l aarch64 aarch64_be| & \lstinline|arm64v8| \\
+    \lstinline|i386 i686 i686-64 i686-AT386| & \lstinline|i386| \\
+    \lstinline|s390x s390| & \lstinline|s390x| \\
+    \lstinline|ppc ppc64 ppcle ppc64le| & \lstinline|ppc64le| \\
+    \emph{other} & \lstinline|amd64| \\
+  \end{tabular}
+  \caption{Mapping between reported machine architecture and image identifier.}
+\end{table}
+
+
+
+\paragraph{Caching.}
+
+\paragraph{Virtual RAM disk.}
+
+\paragraph{Project scaffolding.} To quickly create basic folder structure and files for new projects, the \acrshort{cli} provides a convenience command.
+
+
+
+\subsection{Builder}
+
+\paragraph{Entrpoint}
+
+
+\subsection{Store}
