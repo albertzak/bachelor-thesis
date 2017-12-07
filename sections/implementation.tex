@@ -2,6 +2,45 @@
 
 \subsection{Launcher} The main point of entry to the build tool \acrshort{cli} is a \lstinline|bash| script.
 
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}[>=latex']
+    \tikzset{block/.style={
+      draw,
+      rectangle,
+      align=center,
+      minimum width=2.8cm,
+      minimum height=1cm
+    }};
+
+    \node [block] (installer) {Installer};
+    \node [block, right=1cm of installer] (launcher) {Launcher};
+    \node [block, right=1cm of launcher] (entrypoint) {Entrypoint};
+    \node [block, right=1cm of entrypoint] (builder) {Builder};
+    \node [block, below=0.8cm of launcher] (docker) {Docker};
+
+    \node [
+      block,
+      inner sep=0pt,
+      yshift=-1.8cm,
+      minimum height=0.6cm,
+      fit={(entrypoint) (builder)},
+      label=center:Container] (container) {};
+
+    \node [above left=1cm and -0.5cm of launcher] (start) {};
+
+    \path[draw,->] (launcher) edge (entrypoint)
+      (entrypoint) edge (builder)
+      (docker) edge (container);
+
+    \path[densely dashed,->] (installer) edge (launcher)
+      (launcher) edge (docker);
+
+    \path[draw,o->,very thick] (start) edge[bend right] (launcher);
+  \end{tikzpicture}
+  \caption{Execution sequence of build pipeline components.}
+\end{figure}
+
 \paragraph{Installation.} The recommended way to install the \acrshort{cli} tool is by downloading a \lstinline|bash| script and piping it to the shell. This is a pattern known as ``curl pipe sh'', and while common because of its simplicity, there are some security implications which are discussed in section~\ref{sec:limitations}. A Content Delivery Network, \emph{Cloudflare}, is used to ensure the installer script is exclusively served via \acrshort{http} over \acrshort{tls}.
 
 \begin{lstlisting}[
