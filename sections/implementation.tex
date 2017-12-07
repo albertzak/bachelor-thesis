@@ -1,6 +1,6 @@
 \section{Implementation}
 
-\subsection{Launcher} The main point of entry to the build tool \acrshort{cli} is a \lstinline|bash| script.
+\subsection{Launcher} The main point of entry to the \acrshort{cli} build tool is the \emph{launcher} executable. Acting as the starting point for all invocations, it is implemented as a \lstinline|bash| script mainly wrapping the \emph{Docker} client. To provide a repeatable build environment, the launcher prefers to start a well-known container to run the given command in. If, however, the launcher is invoked as part of an already-running \acrshort{ci} container, it is not possible to start a new one. Thus, the launcher first has to detect whether it is able to start containers. In case it is able to, the launcher has to pull the correct image for the host's machine architecture in combination with the requested Erlang/OTP version, set up volume mounts and environment variables, and invoke the Docker client to start the container. If the launcher is already running inside a container, the responsibility is reduced to passing through the given arguments to the \emph{container entrypoint}. The following paragraphs describe how each component of the launch sequence is implemented.
 
 \begin{figure}[h]
   \centering
@@ -13,10 +13,10 @@
       minimum height=1cm
     }};
 
-    \node [block] (installer) {Installer};
-    \node [block, right=1cm of installer] (launcher) {Launcher};
-    \node [block, right=1cm of launcher] (entrypoint) {Entrypoint};
-    \node [block, right=1cm of entrypoint] (builder) {Builder};
+    \node [block] (installer) {\textbf{Installer}};
+    \node [block, right=1cm of installer] (launcher) {\textbf{Launcher}};
+    \node [block, right=1cm of launcher] (entrypoint) {\textbf{Entrypoint}};
+    \node [block, right=1cm of entrypoint] (command) {$<$\emph{Command}$>$};
     \node [block, below=0.8cm of launcher] (docker) {Docker};
 
     \node [
@@ -24,24 +24,29 @@
       inner sep=0pt,
       yshift=-1.8cm,
       minimum height=0.6cm,
-      fit={(entrypoint) (builder)},
+      fit={(entrypoint) (command)},
       label=center:Container] (container) {};
 
-    \node [above left=1cm and -0.5cm of launcher] (start) {};
+    \node [
+      above left=1cm and -0.5cm of launcher,
+      label=left:\text{``\lstinline|beamup| $<$\emph{Command}$>$}''] (start) {};
 
     \path[draw,->] (launcher) edge (entrypoint)
-      (entrypoint) edge (builder)
+      (entrypoint) edge (command)
       (docker) edge (container);
 
     \path[densely dashed,->] (installer) edge (launcher)
       (launcher) edge (docker);
 
-    \path[draw,o->,very thick] (start) edge[bend right] (launcher);
+    \path[draw,o->,very thick] (start) edge[bend left] (launcher);
+
+    \path[densely dotted] (container.north west) edge (entrypoint.south west);
+    \path[densely dotted] (container.north east) edge (command.south east);
   \end{tikzpicture}
   \caption{Execution sequence of build pipeline components.}
 \end{figure}
 
-\paragraph{Installation.} The recommended way to install the \acrshort{cli} tool is by downloading a \lstinline|bash| script and piping it to the shell. This is a pattern known as ``curl pipe sh'', and while common because of its simplicity, there are some security implications which are discussed in section~\ref{sec:limitations}. A Content Delivery Network, \emph{Cloudflare}, is used to ensure the installer script is exclusively served via \acrshort{http} over \acrshort{tls}.
+\paragraph{Installation.} The recommended way to install the \acrshort{cli} tool is by downloading a \lstinline|bash| script and piping it to the shell. This pattern is informally known as ``curl pipe sh'', and while common because of its simplicity, brings security implications which are discussed in section~\ref{sec:limitations}. A Content Delivery Network, \emph{Cloudflare}, is used to ensure the installer script is exclusively served via \acrshort{http} over \acrshort{tls}.
 
 \begin{lstlisting}[
   label={lst:curlpipesh},
@@ -52,7 +57,9 @@ curl https://get.beamup.io/install | /bin/sh
 
 When the installer detects it is being executed inside an interactive terminal session, it pauses for a few seconds to give the user a chance to abort installation. Next, the installer clones the \acrshort{cli} repository to the \lstinline|~/.beamup| folder of the current user's home directory. Note that cloning a repository keeps file permissions intact, including the executable bits that are set on the main \acrshort{cli} launcher script. At no point are super user permissions needed, consequently the installer first attempts to create a symbolic link to the \acrshort{cli} launcher, and optionally falls back to displaying instructions on how to add the just-installed tool to the executable path. Finally, to make sure that the installation was successful, the launcher is invoked for a self-test. Because the \acrshort{cli} tool is little more than a local clone of a remote repository, distributing and installing updates to the tool itself becomes as trivial as pulling changes from the remote. A convenience wrapper is provided.
 
-\paragraph{Transparent container invocation.} The main point of entry to the \acrshort{cli} build tool the launcher \lstinline|bash| script. It is the starting point for all invocations and its responsibility is to pass the given arguments to the \emph{container entrypoint}, either by starting a new container, or directly. Many \acrshort{ci} platforms confine the whole build process to a container that has already been set up and started, allowing only limited configuration of the container's parameters. Since it is not always possible to start a clean container, the tool must be able to either operate inside an already-running \acrshort{ci} container, or transparently start a new container and pass control inside.
+\paragraph{Project scaffolding.} To quickly create basic folder structure and files for new projects in various \acrshort{beam} languages, the \acrshort{cli} provides a convenience command.
+
+\paragraph{Transparent container invocation.} All commands first go through the launcher, which must set up a container to run the given command in; or run the command directly. Many \acrshort{ci} platforms confine the whole build process to a container that has already been set up and started, allowing only limited configuration of the container's parameters. Since it is not always possible to start a clean container, the tool must be able to either operate inside an already-running \acrshort{ci} container, or transparently start a new container and pass control inside.
 
 First, the launcher  attempts to detect where it is being called from by parsing the \emph{\acrfull{cgroup}} file. While detection in this way is widespread, it is not recommended, since it relies on an implementation detail of the container runtime. However, work to add container introspection capabilities is ongoing\footnote{\url{https://github.com/moby/moby/pull/26331}}. To provide a temporary solution until an interface is finalized and widely deployed, the tool checks for artifacts of common container runtime implementations in the \acrshort{cgroup} file: \emph{Docker}, \emph{\acrfull{lxc}}, and \emph{\acrfull{aws} \acrfull{ecs}}. If the tool is being run inside a container, execution is simply passed to the \emph{container entrypoint} along with all arguments under the assumption that the container's environment is sufficiently correct, i.e.~has the correct version of Erlang/OTP installed.
 
@@ -93,6 +100,24 @@ Ideally, the project folder would be mounted as a layered \acrfull{cow} filesyst
 
 Therefore the naïve solution chosen for this tool is to first mount the project folder as a read-only volume into the container, and then create temporary working copies on which the tools operate without restriction. The original project folder on the host cannot be edited by any process inside the container. Note that if the tool is started inside an already-running container, said restriction of read-only volumes does not apply and the tool must take care to never modify the original location by first creating a copy to a temporary location.
 
+\begin{table}[h]
+  \setlength{\tabcolsep}{10pt}
+  \centering
+  \begin{tabular}{ l c l }
+    Host & & Container \\
+    \hline
+    Current working directory &
+      $\Longrightarrow$ &
+      Project directory \\
+    Combined cache directory &
+      $\Longleftrightarrow$ &
+      $<$\emph{Various cache directories}$>$ \\
+    RAM disk or temporary directory &
+      $\Longleftrightarrow$ &
+      Temporary directory \\
+  \end{tabular}
+  \caption{Container volume mounts.}
+\end{table}
 
 \paragraph{Cache mount.} Minimizing build run time is crucial for a pleasant \acrlong{ci} workflow. Many \acrshort{ci} platforms offer a way to cache the contents of certain folders between build runs. A number of cache folders of the container are bind-mounted to a single cache path in the host user's home directory. Combining the cache paths into one folder on the host makes it trivial to setup caching, as instead of having to configure multiple, possibly changing paths for each tool separately, it is sufficient to cache just one folder. Currently, the host cache folder combines bind mounts of the following locations inside the container:
 \begin{itemize}
@@ -106,8 +131,6 @@ Note that if the launcher is unable to start a container, caching would have to 
 \paragraph{Virtual RAM disk.} The run time of the build tool is bound by performance of the filesystem and storage media. Additionally, building upgrade releases causes the entire project folder to be temporarily duplicated for each previous release.
 If supported by the \emph{Docker} client, the container's \lstinline|/tmp| directory is mounted as a temporary filesystem (\emph{tmpfs}) on the host's \acrshort{ram}. In case the size of the temporary file system grows beyond the available \acrshort{ram}, the host \acrshort{os} transparently falls back to consuming swap space.
 
-\paragraph{Project scaffolding.} To quickly create basic folder structure and files for new projects in various \acrshort{beam} languages, the \acrshort{cli} provides a convenience command.
-
 \paragraph{Environment variables.} All configuration for the tool is provided via environment variables, instead of files or interactive menus. Most \acrlong{ci} platforms provide a straightforward way to configure environment variables for the build pipeline, and many offer additional facilities to encrypt or otherwise store environment variables in a secure way. The launcher reads various environment variables and other parameters of the host, applies transformations, and passes configuration on to the \emph{container entrypoint}, again via environment variables.
 
 Table~\ref{table:envvars} lays out how various parts of the build pipeline use environment variables to pass and transform configuration. Note that neither the architecture of the host, nor the architecture part of the image identifier are passed into the container, as the builder internally retrieves the system architecture string as reported by Erlang/OTP, which differs from the identifier used at the launcher stage.
@@ -117,50 +140,50 @@ Table~\ref{table:envvars} lays out how various parts of the build pipeline use e
   \centering
   \begin{tabularx}{\textwidth}{l X X}
     Host & Launcher & Container entrypoint \\
-    \hhline{===}
-    \emph{working directory} &
-      passed as \lstinline|PROJECT_DIR| \newline
+    \hline
+    \emph{Working directory} &
+      Passed as \lstinline|PROJECT_DIR| \newline
       either as-is or with container path of mount point &
-      passed through \\
+      Passed through \\
     \hline
     \lstinline|ERLANG_VERSION| &
-      used to determine \newline
+      Used to determine \newline
       image identifier &
-      validated against \newline
+      Validated against \newline
       currently installed version \\
     \hline
     \lstinline|ELIXIR_VERSION| &
-      passed through &
-      used to validate and/or \newline
+      Passed through &
+      Used to validate and/or \newline
       install Elixir \\
     \hline
     --- &
       \lstinline|TERM| set to \lstinline|dumb| &
-      passed through \\
+      Passed through \\
     \hline
     --- &
-      contents read from global gitignore
+      Contents read from global gitignore
       file and passed on as \lstinline|GLOBAL_GITIGNORE| &
-      contents written to \newline
+      Contents written to \newline
       container's global \newline
       \emph{gitignore} file \\
     \hline
-    \lstinline|STORE| & passed through & passed through \\
+    \lstinline|STORE| & Passed through & Passed through \\
     \hline
-    \lstinline|STORE_SECRET| & passed through & passed through \\
+    \lstinline|STORE_SECRET| & Passed through & Passed through \\
     \hline
-    \lstinline|DEBUG| & passed through & passed through \\
+    \lstinline|DEBUG| & Passed through & Passed through \\
   \end{tabularx}
   \caption{Transformation of environment variables between host and container.}
   \label{table:envvars}
 \end{table}
 
+\paragraph{Container entrypoint.} As stated above, the \acrshort{cli} may be launched inside an already-running container, or start a clean container. In any case, the \emph{container entrypoint} is a \lstinline|bash| script that is always executed inside a container. Yet it may only make minimal assumptions about its environment since the container may have been set up already with parameters beyond the launcher's control. The primary job of the container entrypoint is to compile the builder. It is also responsible for setting up the Erlang code path to include the location of the builder's compiled artifacts, and to add the directory containing the \emph{command \acrshort{escript}s} to the system's executable path. Finally, the container entrypoint script calls \lstinline|exec $@| to replace the execution of itself with the program whose name and arguments were passed through by the \acrshort{cli} launcher. Such constructs are common in container entrypoint scripts, as doing so allows to transparently invoke any executable inside the container as if the program was running on the host, while preparing the environment before passing control onwards.
+
+\paragraph{Command escripts.} \acrlong{escript}s (\acrshort{escript}s) provide a way to transparently call Erlang code from the system's shell. Some of the tool's commands, including ``build'', ``self test'', and ``install elixir'' are implemented as \acrshort{escript}s. They act as thin wrappers for the Erlang modules that make up the builder application. Their responsibility is to read from various environment variables and to supply them as valid arguments to the builder application.
 
 
 \subsection{Builder}
 
-\paragraph{Container entrypoint.} As stated above, the \acrshort{cli} may be launched inside an already-running container, or start a clean container. In any case, the \emph{container entrypoint} is a \lstinline|bash| script that is always executed inside a container. Yet it may only make minimal assumptions about its environment since the container may have been set up already with parameters beyond the launcher's control. The primary job of the container entrypoint is to compile the builder. It is also responsible for setting up the Erlang code path to include the location of the builder's compiled artifacts, and to add the directory containing the \emph{command \acrshort{escript}s} to the system's executable path. Finally, the container entrypoint script calls \lstinline|exec $@| to replace the execution of itself with the program whose name and arguments were passed through by the \acrshort{cli} launcher. Such constructs are common in container entrypoint scripts, as doing so allows to transparently invoke any executable inside the container as if the program was running on the host, while preparing the environment before passing control onwards.
-
-\paragraph{Command escripts.} \acrlong{escript}s (\acrshort{escript}s) provide a way to transparently call Erlang code from the system's shell. Some of the tool's commands, including ``build'', ``self test'', and ``install elixir'' are implemented as \acrshort{escript}s. They act as thin wrappers for the Erlang modules that make up the builder application. Their responsibility is to read from various environment variables and to supply them as valid arguments to the builder application.
 
 \subsection{Store}

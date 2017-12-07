@@ -15,6 +15,7 @@
 \usepackage{subcaption}
 \usepackage{tabularx}
 \usepackage{hhline}
+\usepackage{boldline}
 \usepackage{algpseudocode}
 \usepackage{tikz}
 \usetikzlibrary{trees,arrows,fit,positioning,shapes.geometric}
@@ -38,8 +39,15 @@
   numbers=left,
   numberstyle=\small\color{lightgray},
   basicstyle=\ttfamily,
-  frame=tb
+  frame=tb,
+  firstnumber=0,
+  stepnumber=5
 }
+% Hide first line number
+\makeatletter
+\def\lst@PlaceNumber{\ifnum\value{lstnumber}=0\else
+  \rlap{\normalfont\kern\linewidth \kern\lst@numbersep\lst@numberstyle{\thelstnumber}}\fi}
+\makeatother
 
 \pdfpageheight=297mm
 \pdfpagewidth=210mm
