@@ -1,23 +1,30 @@
 \section{Implementation}
 
-\subsection{Command Line Interface}
-The main entry point to the build tool \acrshort{cli} is a \lstinline|bash| script.
+\subsection{Launcher} The main point of entry to the build tool \acrshort{cli} is a \lstinline|bash| script.
 
-\paragraph{Installation.} The recommended way to install the \acrshort{cli} tool is by downloading a \lstinline|bash| script and piping it to the shell. This is a pattern known as ``curl pipe sh'', and while common because of its simplicity, there are some security implications which are discussed in~\ref{sec:limitations}. A Content Delivery Network, \emph{Cloudflare}, is used to ensure the installer script is exclusively served via \acrshort{http} over \acrshort{tls}. When the installer detects it is being executed inside an interactive terminal session, it pauses for a few seconds to give the user a chance to abort installation. Next, the installer clones the \acrshort{cli} repository to the \lstinline|~/.beamup| folder of the current user's home directory. Note that cloning a repository keeps file permissions intact, including the executable bits that are set on the main \acrshort{cli} entry point script. At no point are super user permissions needed, consequently the installer first attempts to create a symbolic link to the \acrshort{cli} entry point, and optionally falls back to displaying instructions on how to add the just-installed tool to the executable path. Finally, to make sure that the installation was successful, the \acrshort{cli} tool is invoked for a self-test.
+\paragraph{Installation.} The recommended way to install the \acrshort{cli} tool is by downloading a \lstinline|bash| script and piping it to the shell. This is a pattern known as ``curl pipe sh'', and while common because of its simplicity, there are some security implications which are discussed in section~\ref{sec:limitations}. A Content Delivery Network, \emph{Cloudflare}, is used to ensure the installer script is exclusively served via \acrshort{http} over \acrshort{tls}.
 
-\paragraph{Self-test.}
+\begin{lstlisting}[
+  label={lst:curlpipesh},
+  caption={CLI tool installation command}
+]
+curl https://get.beamup.io/install | /bin/sh
+\end{lstlisting}
+
+When the installer detects it is being executed inside an interactive terminal session, it pauses for a few seconds to give the user a chance to abort installation. Next, the installer clones the \acrshort{cli} repository to the \lstinline|~/.beamup| folder of the current user's home directory. Note that cloning a repository keeps file permissions intact, including the executable bits that are set on the main \acrshort{cli} launcher script. At no point are super user permissions needed, consequently the installer first attempts to create a symbolic link to the \acrshort{cli} launcher, and optionally falls back to displaying instructions on how to add the just-installed tool to the executable path. Finally, to make sure that the installation was successful, the launcher is invoked for a self-test. Because the \acrshort{cli} tool is little more than a local clone of a remote repository, distributing and installing updates to the tool itself becomes as trivial as pulling changes from the remote. A convenience wrapper is provided.
+
+\paragraph{Transparent container invocation.} The main point of entry to the \acrshort{cli} build tool the launcher \lstinline|bash| script. It is the starting point for all invocations and its responsibility is to pass the given arguments to the \emph{container entrypoint}, either by starting a new container, or directly. Many \acrshort{ci} platforms confine the whole build process to a container that has already been set up and started, allowing only limited configuration of the container's parameters. Since it is not always possible to start a clean container, the tool must be able to either operate inside an already-running \acrshort{ci} container, or transparently start a new container and pass control inside.
+
+First, the launcher  attempts to detect where it is being called from by parsing the \emph{\acrfull{cgroup}} file. While detection in this way is widespread, it is not recommended, since it relies on an implementation detail of the container runtime. However, work to add container introspection capabilities is ongoing\footnote{\url{https://github.com/moby/moby/pull/26331}}. To provide a temporary solution until an interface is finalized and widely deployed, the tool checks for artifacts of common container runtime implementations in the \acrshort{cgroup} file: \emph{Docker}, \emph{\acrfull{lxc}}, and \emph{\acrfull{aws} \acrfull{ecs}}. If the tool is being run inside a container, execution is simply passed to the \emph{container entrypoint} along with all arguments under the assumption that the container's environment is sufficiently correct, i.e.~has the correct version of Erlang/OTP installed.
 
 
-\paragraph{Self-update.} Because the \acrshort{cli} tool is little more than a local clone of a remote repository, distributing and installing updates to the tool itself becomes as trivial as pulling changes from the remote. A convenience wrapper is provided.
+\paragraph{Determining the base image.} When the launcher determines that it is able to start a container to run the build in, i.e.~the tool is being invoked inside a \acrshort{vm} or on bare metal, it needs to consider the following two attributes to determine which image to instantiate a container from:
+\begin{enumerate*}[label=(\roman*)]
+  \item The requested version of Erlang/OTP, read from an environment variable, and
+  \item the host's machine architecture.
+\end{enumerate*}
 
-
-
-\paragraph{Transparent Container Invocation.} It is not always possible to start a clean container, as many \acrshort{ci} platforms confine the whole build to a container that has already been set up and started, allowing only limited configuration of the container's parameters. Clearly, the tool must be able to either operate inside an already-running \acrshort{ci} container, or transparently start a new container and pass control inside. First, the \acrshort{cli} entry point first attempts to detect where it is being called from by parsing the \emph{control group} file. While detection in this way is widespread, it is not recommended, since it would be relying on an implementation detail of the container runtime instead of a formal interface. However, work to add introspection capabilities is ongoing\footnote{\url{https://github.com/moby/moby/pull/26331}}. To provide a temporary solution until an interface is finalized and widely deployed, the tool checks for artifacts of common container runtime implementations: \emph{Docker}, \emph{\acrfull{lxc}}, and \emph{\acrfull{aws} \acrfull{ecs}}. If the tool is being run inside a container, execution is simply passed to the \emph{container entrypoint} along with all arguments --- assuming the container's environment is sufficiently correct, ie.~has the correct version of Erlang/OTP installed.
-
-
-\paragraph{Determining the Base Image.} When the tool is able to start a container to run the build in, it needs to consider the following two attributes: The requested version of Erlang/OTP, and the host's machine architecture. The Erlang/OTP version is read from the environment variable \lstinline{BEAMUP_ERLANG_VERSION}. Note that support for other \acrshort{beam} languages such as Elixir is handled within the \emph{container entrypoint}, and just needs the environment variable \lstinline{BEAMUP_ELIXIR_VERSION} to be passed through.
-
-Official builds of Erlang/OTP for various machine architectures are provided on the \emph{Docker Hub}. Such images are available under the namespace of the respective architecture identifiers as used by the \emph{Go} programming language. A challenge lies in reliably normalizing the machine architecture as reported by \lstinline|uname -m|. Note that since version \emph{17.06 Docker} implicitly pulls images for the correct architecture. Since the tool is designed to support \emph{Docker} down to version \emph{1.12}, it has to manually determine the architecture and map it to an image namespace identifier using the following normalization table.
+Concerning the machine architecture, official builds of Erlang/OTP for various architectures are provided on the \emph{Docker Hub}. Such images are available under the namespace of the respective architecture identifiers as used by the \emph{Go} programming language. A challenge lies in reliably normalizing the machine architecture as reported by \lstinline|uname -m|. Note that since version \emph{17.06 Docker} implicitly pulls images for the correct architecture. However, because the tool is designed to support \emph{Docker} down to version \emph{1.12}, the launcher has to manually determine the architecture and map it to an image namespace identifier using the following normalization table.
 
 \begin{table}[h]
   \setlength{\tabcolsep}{10pt}
@@ -35,19 +42,86 @@ Official builds of Erlang/OTP for various machine architectures are provided on 
   \caption{Mapping between reported machine architecture and image identifier.}
 \end{table}
 
+Note that support for other \acrshort{beam} languages such as Elixir is handled within the \emph{container entrypoint}, and it is sufficient to pull an image containing just the Erlang/OTP runtime at this point. Additionally, there are currently no official images of Elixir available for all machine architectures supported by the Erlang/OTP images.
 
 
-\paragraph{Caching.}
+\paragraph{Project mount.} Clearly, the build tool needs access to the directory containing the Erlang/OTP project to be built. The launcher is meant to be invoked inside that directory, and derives the project's name from the name of the current working directory. Note that the build tools must be able to freely modify various configuration files of the project, e.g.~overwrite version numbers, add dependencies and output artifacts. However, the tools must not permanently alter any files of the original project folder on the host as doing so may interfere with other parts of the build pipeline.
 
-\paragraph{Virtual RAM disk.}
+Ideally, the project folder would be mounted as a layered \acrfull{cow} filesystem where the tools may modify any files in a writable upper layer that is overlaid above the original read-only project folder. However, creating \emph{overlay filesystem} mounts inside a container requires elevated privileges of the container as well as additional configuration on the host. Therefore, \acrshort{cow} filesytem mounts are out on \acrshort{ci} platforms. Another way to implement rollback capabilities would be to exploit a \acrfull{scm} system such as Git to track changes made to the project folder. This approach is not optimal either; as \begin{enumerate*}[label=(\roman*)]
+  \item it would require to strip existing Git metadata from the project; and
+  \item Git is not recommended for tracking changes to binary files such as compressed release artifacts.
+\end{enumerate*}
 
-\paragraph{Project scaffolding.} To quickly create basic folder structure and files for new projects, the \acrshort{cli} provides a convenience command.
+Therefore the naïve solution chosen for this tool is to first mount the project folder as a read-only volume into the container, and then create temporary working copies on which the tools operate without restriction. The original project folder on the host cannot be edited by any process inside the container. Note that if the tool is started inside an already-running container, said restriction of read-only volumes does not apply and the tool must take care to never modify the original location by first creating a copy to a temporary location.
+
+
+\paragraph{Cache mount.} Minimizing build run time is crucial for a pleasant \acrlong{ci} workflow. Many \acrshort{ci} platforms offer a way to cache the contents of certain folders between build runs. A number of cache folders of the container are bind-mounted to a single cache path in the host user's home directory. Combining the cache paths into one folder on the host makes it trivial to setup caching, as instead of having to configure multiple, possibly changing paths for each tool separately, it is sufficient to cache just one folder. Currently, the host cache folder combines bind mounts of the following locations inside the container:
+\begin{itemize}
+  \item Compiled artifacts and dependencies of the build tool itself;
+  \item Dependency cache directories of the build tools \lstinline|rebar3| and \lstinline|mix|;
+  \item Erlang and Elixir interactive shell history files;
+  \item Precompiled, downloaded, and extracted Elixir release.
+\end{itemize}
+Note that if the launcher is unable to start a container, caching would have to be set up explicitly for each location.
+
+\paragraph{Virtual RAM disk.} The run time of the build tool is bound by performance of the filesystem and storage media. Additionally, building upgrade releases causes the entire project folder to be temporarily duplicated for each previous release.
+If supported by the \emph{Docker} client, the container's \lstinline|/tmp| directory is mounted as a temporary filesystem (\emph{tmpfs}) on the host's \acrshort{ram}. In case the size of the temporary file system grows beyond the available \acrshort{ram}, the host \acrshort{os} transparently falls back to consuming swap space.
+
+\paragraph{Project scaffolding.} To quickly create basic folder structure and files for new projects in various \acrshort{beam} languages, the \acrshort{cli} provides a convenience command.
+
+\paragraph{Environment variables.} All configuration for the tool is provided via environment variables, instead of files or interactive menus. Most \acrlong{ci} platforms provide a straightforward way to configure environment variables for the build pipeline, and many offer additional facilities to encrypt or otherwise store environment variables in a secure way. The launcher reads various environment variables and other parameters of the host, applies transformations, and passes configuration on to the \emph{container entrypoint}, again via environment variables.
+
+Table~\ref{table:envvars} lays out how various parts of the build pipeline use environment variables to pass and transform configuration. Note that neither the architecture of the host, nor the architecture part of the image identifier are passed into the container, as the builder internally retrieves the system architecture string as reported by Erlang/OTP, which differs from the identifier used at the launcher stage.
+
+\begin{table}[h]
+  \setlength{\tabcolsep}{10pt}
+  \centering
+  \begin{tabularx}{\textwidth}{l X X}
+    Host & Launcher & Container entrypoint \\
+    \hhline{===}
+    \emph{working directory} &
+      passed as \lstinline|PROJECT_DIR| \newline
+      either as-is or with container path of mount point &
+      passed through \\
+    \hline
+    \lstinline|ERLANG_VERSION| &
+      used to determine \newline
+      image identifier &
+      validated against \newline
+      currently installed version \\
+    \hline
+    \lstinline|ELIXIR_VERSION| &
+      passed through &
+      used to validate and/or \newline
+      install Elixir \\
+    \hline
+    --- &
+      \lstinline|TERM| set to \lstinline|dumb| &
+      passed through \\
+    \hline
+    --- &
+      contents read from global gitignore
+      file and passed on as \lstinline|GLOBAL_GITIGNORE| &
+      contents written to \newline
+      container's global \newline
+      \emph{gitignore} file \\
+    \hline
+    \lstinline|STORE| & passed through & passed through \\
+    \hline
+    \lstinline|STORE_SECRET| & passed through & passed through \\
+    \hline
+    \lstinline|DEBUG| & passed through & passed through \\
+  \end{tabularx}
+  \caption{Transformation of environment variables between host and container.}
+  \label{table:envvars}
+\end{table}
 
 
 
 \subsection{Builder}
 
-\paragraph{Entrpoint}
+\paragraph{Container entrypoint.} As stated above, the \acrshort{cli} may be launched inside an already-running container, or start a clean container. In any case, the \emph{container entrypoint} is a \lstinline|bash| script that is always executed inside a container. Yet it may only make minimal assumptions about its environment since the container may have been set up already with parameters beyond the launcher's control. The primary job of the container entrypoint is to compile the builder. It is also responsible for setting up the Erlang code path to include the location of the builder's compiled artifacts, and to add the directory containing the \emph{command \acrshort{escript}s} to the system's executable path. Finally, the container entrypoint script calls \lstinline|exec $@| to replace the execution of itself with the program whose name and arguments were passed through by the \acrshort{cli} launcher. Such constructs are common in container entrypoint scripts, as doing so allows to transparently invoke any executable inside the container as if the program was running on the host, while preparing the environment before passing control onwards.
 
+\paragraph{Command escripts.} \acrlong{escript}s (\acrshort{escript}s) provide a way to transparently call Erlang code from the system's shell. Some of the tool's commands, including ``build'', ``self test'', and ``install elixir'' are implemented as \acrshort{escript}s. They act as thin wrappers for the Erlang modules that make up the builder application. Their responsibility is to read from various environment variables and to supply them as valid arguments to the builder application.
 
 \subsection{Store}
