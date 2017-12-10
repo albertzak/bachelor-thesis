@@ -43,7 +43,7 @@
   firstnumber=0,
   stepnumber=5
 }
-% Hide first line number
+% Hide number in first line of code listings
 \makeatletter
 \def\lst@PlaceNumber{\ifnum\value{lstnumber}=0\else
   \rlap{\normalfont\kern\linewidth \kern\lst@numbersep\lst@numberstyle{\thelstnumber}}\fi}
@@ -55,14 +55,23 @@
 
 \begin{document}
 
+\thispagestyle{empty}
 \include{sections/abstract}
 
+\pagenumbering{roman}
+
 \tableofcontents{}
+
+\cleardoublepage
 
 \renewcommand{\glsnamefont}[1]{\textbf{#1}}
 \doublespacing
 \printglossary[nonumberlist,type=\acronymtype]
 \singlespacing
+
+\cleardoublepage
+
+\pagenumbering{arabic}
 
 \include{sections/introduction}
 \include{sections/implementation}
