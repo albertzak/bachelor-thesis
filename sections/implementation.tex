@@ -19,29 +19,30 @@
     \node [block, right=1cm of entrypoint] (command) {$<$\emph{Command}$>$};
     \node [block, below=0.8cm of launcher] (docker) {Docker};
 
-    \node [
-      block,
-      inner sep=0pt,
+    \node [inner sep=0pt,
       yshift=-1.8cm,
       minimum height=0.6cm,
       fit={(entrypoint) (command)},
-      label=center:Container] (container) {};
+      label=center:Linux Container] (container) {};
 
     \node [
       above left=1cm and -0.5cm of launcher,
       label=left:\text{``\lstinline|beamup| $<$\emph{Command}$>$}''] (start) {};
 
     \path[draw,->] (launcher) edge (entrypoint)
-      (entrypoint) edge (command)
-      (docker) edge (container);
+      (entrypoint) edge (command);
 
     \path[densely dashed,->] (installer) edge (launcher)
       (launcher) edge (docker);
 
     \path[draw,o->,thick] (start) edge[bend left] (launcher);
 
-    \path[densely dotted] (container.north west) edge (entrypoint.south west);
-    \path[densely dotted] (container.north east) edge (command.south east);
+    \node [draw=black!50, densely dashed, fit={
+      (entrypoint) (command) (container)
+    }, inner sep=10pt] (container_box) {};
+
+    \path[draw,->] (docker) edge (container -|container_box.west);
+
   \end{tikzpicture}
   \caption{Execution sequence of build pipeline components.}
 \end{figure}
@@ -326,14 +327,14 @@ Depending on the build tool used on the project, some configuration files of the
   \renewcommand{\arraystretch}{1.5}
   \centering
   \begin{tabular}{ r r c r r }
-    1: & $w\;\Leftrightarrow\;{}x$ &
+    n: & $w\;\Leftrightarrow\;{}x$ &
       \multirow{4}{*}{
         \hspace{15pt}
         \Large{$\succ$}
         \hspace{15pt}
       }& \\
-    1: & $g\;\Leftrightarrow\;{}x$ & &
-      1: & $(w|g)\;\Leftrightarrow\;{}x$ \\
+    n: & $g\;\Leftrightarrow\;{}x$ & &
+      n: & $(w|g)\;\Leftrightarrow\;{}x$ \\
     $m$: & $y\;\Leftrightarrow\;{}z$ & &
       m: & $(y|h)\;\Leftrightarrow\;{}z$ \\
     $m$: & $h\;\Leftrightarrow\;{}z$ & & \\
