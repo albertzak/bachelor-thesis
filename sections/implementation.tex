@@ -322,6 +322,26 @@ Depending on the build tool used on the project, some configuration files of the
   \caption{Generating upgrade instructions.}
 \end{figure}
 
+\begin{table}[h]
+  \setlength{\tabcolsep}{2pt}
+  \renewcommand{\arraystretch}{1.5}
+  \centering
+  \begin{tabular}{ r r c r r }
+    1: & $w\;\Leftrightarrow\;{}x$ &
+      \multirow{4}{*}{
+        \hspace{15pt}
+        \Large{$\succ$}
+        \hspace{15pt}
+      }& \\
+    1: & $g\;\Leftrightarrow\;{}x$ & &
+      1: & $(w|g)\;\Leftrightarrow\;{}x$ \\
+    $m$: & $y\;\Leftrightarrow\;{}z$ & &
+      m: & $(y|h)\;\Leftrightarrow\;{}z$ \\
+    $m$: & $h\;\Leftrightarrow\;{}z$ & & \\
+  \end{tabular}
+  \caption{Combining collected upgrade instructions.}\label{table:architectures}
+\end{table}
+
 
 \paragraph{Fetching previous releases.} While the project is being compiled, the builder queries the store for a list of the version identifiers of all currently stored artifacts that match the name of the project being built, and had been compiled on the same machine architecture the builder is currently running on. The builder then filters this list to exclude the current combination of version identifier and branch. Note that the branch identifier is only considered for excluding the current combination, but not for other versions, as it might be helpful to generate release upgrades between branches, so that a node may hot-switch its branch by applying a cross-branch upgrade. Each of the remaining releases are then downloaded and extracted to a temporary location.
 
