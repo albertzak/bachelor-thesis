@@ -208,13 +208,173 @@ Depending on the build tool used on the project, some configuration files of the
 
 \paragraph{Building release upgrades.} Recall that assembling a release upgrade used to require the developer to first write \emph{high level} {\acrfull{appup} for each application that is part of the release. Next, \lstinline|systools|, part of \acrshort{otp} \acrfull{sasl}, translate the high level appups into low-level instructions and combine them into a single \acrfull{relup} file. Previous work~\cite{rebar3appup} has shown that the high-level \acrlong{appup} can be generated on a best-effort basis by comparing compiled \acrshort{beam} and application resource files, additionally taking hints from the developer given as appup templates to guide the algorithm in complicated upgrade situations. Consequently, the builder needs access to the previous releases of which the current release will be able to know how to upgrade from.
 
+% Generating upgrade instructions
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[b]{\textwidth}
+    \centering
+    \begin{tikzpicture}[
+      >=latex',
+      release/.style={},
+      app/.style={rectangle, draw=black!50, anchor=west},
+      generator/.style={
+        draw,
+        shape border rotate=180,
+        regular polygon,
+        regular polygon sides=3,
+        align=center
+      }
+    ]
+      \pgfdeclarelayer{background}
+      \pgfdeclarelayer{foreground}
+      \pgfsetlayers{background,main,foreground}
+
+      \node [release] (prev1) {Previous Release $n$};
+      \node [below=of prev1.west, app, xshift=2mm] (prev1_app1) {App $1$ $\cdot$ version $w$};
+      \node [below=of prev1_app1.west, app] (prev1_app2) {App $m$ $\cdot$ version $y$};
+      \node [draw=black!50, fit={
+        (prev1) (prev1_app1) (prev1_app2)
+      }] (prev1_box) {};
+
+      \node [generator, right=of prev1] (appup_generator) {$\lambda$};
+
+      \node [release, right=of appup_generator] (curr1) {Current Release};
+      \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $1$ $\cdot$ version $x$\\$(\star)$ appup $w\Leftrightarrow{}x$};
+      \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $m$ $\cdot$ version $z$\\$(\star)$ appup $y\Leftrightarrow{}z$};
+      \node [draw=black!50, fit={
+        (curr1) (curr1_app1) (curr1_app2)
+      }] (curr1_box) {};
+
+      \path[draw,->]
+      (prev1) edge (appup_generator)
+      (curr1) edge (appup_generator);
+
+      \path[draw,->] (appup_generator.south) |- (curr1_app1.189);
+      \path[draw,->] (appup_generator.south) |- (curr1_app2.189);
+
+      \begin{pgfonlayer}{background}
+        \node [draw=black!50, fit={
+          (prev1_box) (curr1_box)
+        }, fill=white, double copy shadow={shadow xshift=-4pt,
+        shadow yshift=4pt, fill=white, draw}] (generation) {};
+      \end{pgfonlayer}
+
+    \end{tikzpicture}
+    \subcaption{\acrfull{appup} generation.}
+  \end{subfigure}
+  \vspace{10pt} \\
+  \begin{subfigure}[b]{\textwidth}
+    \centering
+    \begin{tikzpicture}[
+      >=latex',
+      release/.style={},
+      app/.style={rectangle, draw=black!50, anchor=west},
+      generator/.style={
+        draw,
+        shape border rotate=180,
+        regular polygon,
+        regular polygon sides=3,
+        align=center
+      }
+    ]
+      \pgfdeclarelayer{background}
+      \pgfdeclarelayer{foreground}
+      \pgfsetlayers{background,main,foreground}
+
+      \node [release] (prev1) {Previous Release $n$};
+      \node [below=of prev1.west, app, xshift=2mm] (prev1_app1) {App $1$ $\cdot$ version $w$};
+      \node [below=of prev1_app1.west, app] (prev1_app2) {App $m$ $\cdot$ version $y$};
+      \node [draw=black!50, fit={
+        (prev1) (prev1_app1) (prev1_app2)
+      }] (prev1_box) {};
+
+      \node [generator, right=of prev1] (appup_generator) {$\lambda$};
+
+      \node [release, right=of appup_generator] (curr1) {Current Release};
+      \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $1$ $\cdot$ version $x$\\appup $w\Leftrightarrow{}x$};
+      \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $m$ $\cdot$ version $z$\\appup $y\Leftrightarrow{}z$};
+      \node [below=of curr1_app2.west, app, yshift=-4mm] (relup) {$(\star)$ relup};
+      \node [draw=black!50, fit={
+        (curr1) (curr1_app1) (curr1_app2) (relup)
+      }] (curr1_box) {};
+
+      \path[draw,->]
+      (prev1) edge (appup_generator)
+      (curr1) edge (appup_generator);
+
+      \path[draw,->] (curr1_app1.189) -| (appup_generator.south east);
+      \path[draw,->] (curr1_app2.189) -| (appup_generator.south east);
+
+      \path[draw,->] (appup_generator.south) |- (relup);
+
+      \begin{pgfonlayer}{background}
+        \node [draw=black!50, fit={
+          (prev1_box) (curr1_box)
+        }, fill=white, double copy shadow={shadow xshift=-4pt,
+        shadow yshift=4pt, fill=white, draw}] (generation) {};
+      \end{pgfonlayer}
+
+    \end{tikzpicture}
+    \subcaption{\acrfull{relup} generation.\\
+    \vspace{10pt} $(\star)$ denotes new files.}
+  \end{subfigure}
+  \caption{Generating upgrade instructions.}
+\end{figure}
+
+
 \paragraph{Fetching previous releases.} While the project is being compiled, the builder queries the store for a list of the version identifiers of all currently stored artifacts that match the name of the project being built, and had been compiled on the same machine architecture the builder is currently running on. The builder then filters this list to exclude the current combination of version identifier and branch. Note that the branch identifier is only considered for excluding the current combination, but not for other versions, as it might be helpful to generate release upgrades between branches, so that a node may hot-switch its branch by applying a cross-branch upgrade. Each of the remaining releases are then downloaded and extracted to a temporary location.
 
 \paragraph{Generating \acrshort{appup}s.} For Erlang projects built with \lstinline|rebar3|, the \acrlong{appup} generator plugin~\cite{rebar3appup} is used. A limitation of this plugin is that it can only generate \acrshort{appup}s for the applications between exactly two releases; while the \acrshort{appup} specification includes the possibility of a single \acrshort{appup} file containing instructions to upgrade from multiple previous versions. Even when the \acrshort{appup} generator is invoked multiple times, it overwrites the previously generated file instead of appending to the instructions. Hence, the \acrshort{appup} generator is invoked multiple times, each iteration between a single previous release and a fresh working copy of the current project. Each time after the generator plugin was run, the resulting \acrshort{appup} files are collected from the application subdirectories and their contents and relative path are saved in a temporary structure. After \acrlong{appup} had been generated and collected for all applications of all previous releases, they are grouped by the application which they belong to. For each application the collected instructions are merged into a single \acrshort{appup} file that is written back to the relative location of the \acrshort{appup} file in the respective application of the current project.
 
 \paragraph{Generating relups.} Erlang/\acrshort{otp} ships with the \acrfull{sasl} application that includes a function to assemble multiple high-level \acrfull{appup} files into a single low-level \acrfull{relup} file. Additionally, \lstinline|rebar3| wraps the \acrshort{relup} assembler in a convenience command that takes care to correctly set up the environment before invoking the generator. While the bare \acrshort{relup} generator handles multiple previous releases directly, the wrapper provided by \lstinline|rebar3| is in fact another wrapper over \lstinline|relx|, which finally calls \acrshort{sasl}. At one point in this chain, the ability to handle multiple previous releases is lost, so the tool has to engage a similar technique as the one used for generating \acrshort{appup}s. For each previous release, the current project is cloned, because in addition to the \acrshort{appup} files, the \acrshort{relup} generator also needs access to the previous release resource file and expects previous versions of the applications inside the application directory of the current release, so the previous applications are copied to the clone of the current project. The \acrshort{relup} generator is invoked to produce a \lstinline|relup| file inside the clone of the current project. The resulting \acrlong{relup} are again collected and the temporary clones are deleted. In contrast to the \acrshort{appup} generation process, there is now only a single \acrshort{relup} file for each previous release. These files have almost the same structure as the \acrshort{appup} files so the the tool can merge the collected instructions in the same way, and write the resulting \acrshort{relup} file to the current release.
 
-\paragraph{Packaging and storing the release.} With a final, merged \acrshort{relup} file in place, the release is ready to be packaged as a tarball (\lstinline|*.tar.gz|), which contains everything needed to start a \emph{target system} from scratch, or to hot-upgrade a system running any of the versions of any branches that were present in the store when the build process was started. The resulting tarball artifact is sent to the store.
+\paragraph{Packaging and storing the release.} With a final, merged \acrfull{relup} file in place, the release is ready to be packaged as a gzip-compressed tarball (\lstinline|*.tar.gz|), which contains everything needed to start a \emph{target system} from scratch, or to hot-upgrade a system running any of the versions of any branches that were present in the store when the build process was started. The resulting tarball artifact is sent to the store.
+
+\begin{figure}[h]
+  \centering
+  \vspace{5mm}
+  \begin{forest}
+    dir tree
+    [./$<$\emph{project name}$>$-$<$\emph{release version}$>$.tar.gz
+      [bin]
+      [erts-$<$\emph{erts version}$>$\quad\ldots]
+      [lib
+        [$<$\emph{application 1 name}$>$-$<$\emph{app.~1 version}$>$
+          [ebin
+            [$<$\emph{application name}$>$.app]
+            [$<$\emph{module 1\ldots{}m}$>$.beam]
+          ]
+          [include
+            [$<$\emph{header 1\ldots{}m}$>$.hrl]
+          ]
+        ]
+        [$<$\emph{application n name}$>$-$<$\emph{app.~n version}$>$
+          [ebin\quad\ldots]
+          [include\quad\ldots]
+        ]
+        [kernel-$<$\emph{kernel version}$>$\quad\ldots]
+        [sasl-$<$\emph{sasl version}$>$\quad\ldots]
+        [stdlib-$<$\emph{stdlib version}$>$\quad\ldots]
+      ]
+      [releases
+        [$<$\emph{release version}$>$
+          [$<$\emph{project name}$>$.rel]
+          [relup]
+          [start.boot]
+          [sys.config]
+          [vm.args]
+        ]
+        [$<$\emph{project name}$>$.rel]
+        [RELEASES]
+        [start\_erl.data]
+      ]
+    ]
+  \end{forest}
+  \caption{Directory tree of an \acrshort{otp} Release artifact.}
+\end{figure}
 
 \cleardoublepage
 \subsection{Store}
+
+\paragraph{\acrshort{api}.}

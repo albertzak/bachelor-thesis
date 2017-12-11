@@ -18,13 +18,39 @@
 \usepackage{boldline}
 \usepackage{algpseudocode}
 \usepackage{tikz}
-\usetikzlibrary{trees,arrows,fit,positioning,shapes.geometric}
+\usetikzlibrary{trees,arrows,fit,positioning,shapes.geometric,shadows}
 \PassOptionsToPackage{usenames,dvipsnames,svgnames,table}{xcolor}
 \usepackage{xcolor-solarized}
 \usepackage{gitdags}
 \usepackage[singlespacing]{setspace}
 \usepackage[acronym,nopostdot,style=super,nonumberlist,nogroupskip]{glossaries}
 \usepackage{fancyhdr}
+\usepackage{forest}
+\forestset{
+  dir tree/.style={
+    for tree={
+      parent anchor=south west,
+      child anchor=west,
+      anchor=mid west,
+      inner ysep=-3pt,
+      grow'=0,
+      align=left,
+      edge path={
+        \noexpand\path [draw, very thin, lightgray, \forestoption{edge}] (!u.parent anchor) ++(1em,0) |- (.child anchor)\forestoption{edge label};
+      },
+      font=\ttfamily,
+      if n children=0{}{
+        delay={
+          prepend={[,phantom, calign with current]}
+        }
+      },
+      fit=band,
+      before computing xy={
+        l=2em
+      }
+    },
+  }
+}
 
 \pagestyle{fancy}
 \fancyhf{}
