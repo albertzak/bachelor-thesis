@@ -241,8 +241,8 @@ Depending on the build tool used on the project, some configuration files of the
       \node [generator, right=of prev1] (appup_generator) {$\lambda$};
 
       \node [release, right=of appup_generator] (curr1) {Current Release};
-      \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $1$ $\cdot$ version $x$\\$(\star)$ appup $w\Leftrightarrow{}x$};
-      \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $m$ $\cdot$ version $z$\\$(\star)$ appup $y\Leftrightarrow{}z$};
+      \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $1$ $\cdot$ version $x$\\$(\star)$ \acrshort{appup} $w\Leftrightarrow{}x$};
+      \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $m$ $\cdot$ version $z$\\$(\star)$ \acrshort{appup} $y\Leftrightarrow{}z$};
       \node [draw=black!50, fit={
         (curr1) (curr1_app1) (curr1_app2)
       }] (curr1_box) {};
@@ -292,9 +292,9 @@ Depending on the build tool used on the project, some configuration files of the
       \node [generator, right=of prev1] (appup_generator) {$\lambda$};
 
       \node [release, right=of appup_generator] (curr1) {Current Release};
-      \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $1$ $\cdot$ version $x$\\appup $w\Leftrightarrow{}x$};
-      \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $m$ $\cdot$ version $z$\\appup $y\Leftrightarrow{}z$};
-      \node [below=of curr1_app2.west, app, yshift=-4mm] (relup) {$(\star)$ relup};
+      \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $1$ $\cdot$ version $x$\\\acrshort{appup} $w\Leftrightarrow{}x$};
+      \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $m$ $\cdot$ version $z$\\\acrshort{appup} $y\Leftrightarrow{}z$};
+      \node [below=of curr1_app2.west, app, yshift=-4mm] (relup) {$(\star)$ \acrshort{relup}};
       \node [draw=black!50, fit={
         (curr1) (curr1_app1) (curr1_app2) (relup)
       }] (curr1_box) {};
