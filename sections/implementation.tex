@@ -246,9 +246,8 @@ Depending on the build tool used on the project, some configuration files of the
         (curr1) (curr1_app1) (curr1_app2)
       }] (curr1_box) {};
 
-      \path[draw,->]
-      (prev1) edge (appup_generator)
-      (curr1) edge (appup_generator);
+      \path[draw,->,shorten >=2pt] (prev1 -| prev1_box.east) to (appup_generator);
+      \path[draw,->,shorten >=2pt] (curr1 -| curr1_box.west) to (appup_generator);
 
       \path[draw,->] (appup_generator.south) |- (curr1_app1.189);
       \path[draw,->] (appup_generator.south) |- (curr1_app2.189);
@@ -299,12 +298,12 @@ Depending on the build tool used on the project, some configuration files of the
         (curr1) (curr1_app1) (curr1_app2) (relup)
       }] (curr1_box) {};
 
-      \path[draw,->]
-      (prev1) edge (appup_generator)
-      (curr1) edge (appup_generator);
+      \path[draw,->,shorten >=2pt] (prev1 -| prev1_box.east) to (appup_generator);
+      \path[draw,->,shorten >=2pt] (curr1 -| curr1_box.west) to (appup_generator);
 
-      \path[draw,->] (curr1_app1.189) -| (appup_generator.south east);
-      \path[draw,->] (curr1_app2.189) -| (appup_generator.south east);
+
+      \path[draw,->,shorten >=5pt] (curr1_app1.189) -| (appup_generator.south east);
+      \path[draw,->,shorten >=5pt] (curr1_app2.189) -| (appup_generator.south east);
 
       \path[draw,->] (appup_generator.south) |- (relup);
 
