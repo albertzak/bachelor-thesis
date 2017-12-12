@@ -64,7 +64,7 @@ When the installer detects it is being executed inside an interactive terminal s
 
 \paragraph{Transparent container invocation.} All commands first go through the launcher, which must set up a container to run the given command in; or run the command directly. Many \acrshort{ci} platforms confine the whole build process to a container that has already been set up and started, allowing only limited configuration of the container's parameters. Since it is not always possible to start a clean container, the tool must be able to either operate inside an already-running \acrshort{ci} container, or transparently start a new container and pass control inside.
 
-First, the launcher  attempts to detect where it is being called from by parsing the \emph{control group (cgroup)} file. While detection in this way is widespread, it is not recommended, since it relies on an implementation detail of the container runtime. However, work to add container introspection capabilities is ongoing\footnote{\url{https://github.com/moby/moby/pull/26331}}. To provide a temporary solution until an interface is finalized and widely deployed, the tool checks for artifacts of common container runtime implementations in the \emph{cgroup} file: \emph{Docker}, \emph{\acrfull{lxc}}, and \emph{\acrfull{aws} \acrfull{ecs}}. If the tool is being run inside a container, execution is simply passed to the \emph{container entrypoint} along with all arguments under the assumption that the container's environment is sufficiently correct, i.e.~has the correct version of Erlang/OTP installed.
+First, the launcher  attempts to detect where it is being called from by parsing the \emph{\acrfull{cgroups}} file. While detection in this way is widespread, it is not recommended, since it relies on an implementation detail of the container runtime. However, work to add container introspection capabilities is ongoing\footnote{\url{https://github.com/moby/moby/pull/26331}}. To provide a temporary solution until an interface is finalized and widely deployed, the tool checks for artifacts of common container runtime implementations in the \acrshort{cgroups} file: \emph{Docker}, \emph{\acrfull{lxc}}, and \emph{\acrfull{aws} \acrfull{ecs}}. If the tool is being run inside a container, execution is simply passed to the \emph{container entrypoint} along with all arguments under the assumption that the container's environment is sufficiently correct, i.e.~has the correct version of Erlang/OTP installed.
 
 \paragraph{Determining the base image.} When the launcher determines that it is able to start a container to run the build in, i.e.~the tool is being invoked inside a \acrshort{vm} or on bare metal, it needs to consider the following two attributes to determine which image to instantiate a container from:
 \begin{enumerate*}[label=(\roman*)]
@@ -115,7 +115,7 @@ Note that support for other \acrshort{beam} languages such as Elixir is handled 
 \end{table}
 
 \paragraph{Virtual RAM disk.} The run time of the build tool is bound by performance of the filesystem and storage media. Additionally, building upgrade releases causes the entire project folder to be temporarily duplicated for each previous release.
-If supported by the \emph{Docker} client, the container's \lstinline|/tmp| directory is mounted as a temporary filesystem (\emph{tmpfs}) on the host's \acrshort{ram}. In case the size of the temporary file system grows beyond the available \acrshort{ram}, the host \acrshort{os} transparently falls back to consuming swap space.
+If supported by the \emph{Docker} client, the container's \lstinline|/tmp| directory is mounted as a \emph{\acrfull{tmpfs}} on the host's \acrshort{ram}. In case the size of the temporary file system grows beyond the available \acrshort{ram}, the host \acrshort{os} transparently falls back to consuming swap space.
 
 
 \paragraph{Cache mount.} Minimizing build run time is crucial for a pleasant \acrlong{ci} workflow. Many \acrshort{ci} platforms offer a way to cache the contents of certain folders between build runs. A number of cache folders of the container are bind-mounted to a single cache path in the host user's home directory. Combining the cache paths into one folder on the host makes it trivial to setup caching, as instead of having to configure multiple, possibly changing paths for each tool separately, it is sufficient to cache just one folder. Currently, the host cache folder combines bind mounts of the following locations inside the container:
@@ -211,137 +211,140 @@ Depending on the build tool used on the project, some configuration files of the
 
 % Generating upgrade instructions
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}[b]{\textwidth}
-    \centering
-    \begin{tikzpicture}[
-      >=latex',
-      release/.style={},
-      app/.style={rectangle, draw=black!50, anchor=west},
-      generator/.style={
-        draw,
-        shape border rotate=180,
-        regular polygon,
-        regular polygon sides=3,
-        align=center
-      }
-    ]
-      \pgfdeclarelayer{background}
-      \pgfdeclarelayer{foreground}
-      \pgfsetlayers{background,main,foreground}
+\ffigbox[\textwidth]{
+  \begin{subfloatrow}
+    \ffigbox[\textwidth]{
+      \centering
+      \begin{tikzpicture}[
+        >=latex',
+        release/.style={},
+        app/.style={rectangle, draw=black!50, anchor=west},
+        generator/.style={
+          draw,
+          shape border rotate=180,
+          regular polygon,
+          regular polygon sides=3,
+          align=center
+        }
+      ]
+        \pgfdeclarelayer{background}
+        \pgfdeclarelayer{foreground}
+        \pgfsetlayers{background,main,foreground}
 
-      \node [release] (prev1) {Previous Release $n$};
-      \node [below=of prev1.west, app, xshift=2mm] (prev1_app1) {App $1$ $\cdot$ version $w$};
-      \node [below=of prev1_app1.west, app] (prev1_app2) {App $m$ $\cdot$ version $y$};
-      \node [draw=black!50, fit={
-        (prev1) (prev1_app1) (prev1_app2)
-      }] (prev1_box) {};
-
-      \node [generator, right=of prev1] (appup_generator) {$\lambda$};
-
-      \node [release, right=of appup_generator] (curr1) {Current Release};
-      \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $1$ $\cdot$ version $x$\\$(\star)$ \acrshort{appup} $w\Leftrightarrow{}x$};
-      \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $m$ $\cdot$ version $z$\\$(\star)$ \acrshort{appup} $y\Leftrightarrow{}z$};
-      \node [draw=black!50, fit={
-        (curr1) (curr1_app1) (curr1_app2)
-      }] (curr1_box) {};
-
-      \path[draw,->,shorten >=2pt] (prev1 -| prev1_box.east) to (appup_generator);
-      \path[draw,->,shorten >=2pt] (curr1 -| curr1_box.west) to (appup_generator);
-
-      \path[draw,->] (appup_generator.south) |- (curr1_app1.189);
-      \path[draw,->] (appup_generator.south) |- (curr1_app2.189);
-
-      \begin{pgfonlayer}{background}
+        \node [release] (prev1) {Previous Release $p$};
+        \node [below=of prev1.west, app, xshift=2mm] (prev1_app1) {App $a$ $\cdot$ version $w$};
+        \node [below=of prev1_app1.west, app] (prev1_app2) {App $b$ $\cdot$ version $y$};
         \node [draw=black!50, fit={
-          (prev1_box) (curr1_box)
-        }, fill=white, double copy shadow={shadow xshift=-4pt,
-        shadow yshift=4pt, fill=white, draw}] (generation) {};
-      \end{pgfonlayer}
+          (prev1) (prev1_app1) (prev1_app2)
+        }] (prev1_box) {};
 
-    \end{tikzpicture}
-    \subcaption{\acrfull{appup} generation.}
-  \end{subfigure}
+        \node [generator, right=of prev1] (appup_generator) {$\lambda$};
+
+        \node [release, right=of appup_generator] (curr1) {Current Release};
+        \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $a$ $\cdot$ version $x$\\$(\star)$ \acrshort{appup} $w\Leftrightarrow{}x$};
+        \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $b$ $\cdot$ version $z$\\$(\star)$ \acrshort{appup} $y\Leftrightarrow{}z$};
+        \node [draw=black!50, fit={
+          (curr1) (curr1_app1) (curr1_app2)
+        }] (curr1_box) {};
+
+        \path[draw,->,shorten >=2pt] (prev1 -| prev1_box.east) to (appup_generator);
+        \path[draw,->,shorten >=2pt] (curr1 -| curr1_box.west) to (appup_generator);
+
+        \path[draw,->] (appup_generator.south) |- (curr1_app1.189);
+        \path[draw,->] (appup_generator.south) |- (curr1_app2.189);
+
+        \begin{pgfonlayer}{background}
+          \node [draw=black!50, fit={
+            (prev1_box) (curr1_box)
+          }, fill=white, double copy shadow={shadow xshift=-4pt,
+          shadow yshift=4pt, fill=white, draw}] (generation) {};
+        \end{pgfonlayer}
+
+      \end{tikzpicture}
+    }{\caption{\acrfull{appup} generation.}}
+  \end{subfloatrow}
+  \vspace{40pt} \\
+  \begin{subfloatrow}
+    \ffigbox[\textwidth]{
+      \centering
+      \begin{tikzpicture}[
+        >=latex',
+        release/.style={},
+        app/.style={rectangle, draw=black!50, anchor=west},
+        generator/.style={
+          draw,
+          shape border rotate=180,
+          regular polygon,
+          regular polygon sides=3,
+          align=center
+        }
+      ]
+        \pgfdeclarelayer{background}
+        \pgfdeclarelayer{foreground}
+        \pgfsetlayers{background,main,foreground}
+
+        \node [release] (prev1) {Previous Release $p$};
+        \node [below=of prev1.west, app, xshift=2mm] (prev1_app1) {App $a$ $\cdot$ version $w$};
+        \node [below=of prev1_app1.west, app] (prev1_app2) {App $b$ $\cdot$ version $y$};
+        \node [draw=black!50, fit={
+          (prev1) (prev1_app1) (prev1_app2)
+        }] (prev1_box) {};
+
+        \node [generator, right=of prev1] (appup_generator) {$\lambda$};
+
+        \node [release, right=of appup_generator] (curr1) {Current Release};
+        \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $a$ $\cdot$ version $x$\\\acrshort{appup} $w\Leftrightarrow{}x$};
+        \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $b$ $\cdot$ version $z$\\\acrshort{appup} $y\Leftrightarrow{}z$};
+        \node [below=of curr1_app2.west, app, yshift=-4mm] (relup) {$(\star)$ \acrshort{relup}};
+        \node [draw=black!50, fit={
+          (curr1) (curr1_app1) (curr1_app2) (relup)
+        }] (curr1_box) {};
+
+        \path[draw,->,shorten >=2pt] (prev1 -| prev1_box.east) to (appup_generator);
+        \path[draw,->,shorten >=2pt] (curr1 -| curr1_box.west) to (appup_generator);
+
+
+        \path[draw,->,shorten >=5pt] (curr1_app1.189) -| (appup_generator.south east);
+        \path[draw,->,shorten >=5pt] (curr1_app2.189) -| (appup_generator.south east);
+
+        \path[draw,->] (appup_generator.south) |- (relup);
+
+        \begin{pgfonlayer}{background}
+          \node [draw=black!50, fit={
+            (prev1_box) (curr1_box)
+          }, fill=white, double copy shadow={shadow xshift=-4pt,
+          shadow yshift=4pt, fill=white, draw}] (generation) {};
+        \end{pgfonlayer}
+
+      \end{tikzpicture}
+    }{
+      \caption{
+        \acrfull{relup} generation.\\
+        \vspace{6pt} $(\star)$ denotes new files.}
+    }
+  \end{subfloatrow}
+  \vspace{20pt} \\
+  \begin{subfloatrow}
+    \ffigbox[\textwidth]{
+      \setlength{\tabcolsep}{2pt}
+      \renewcommand{\arraystretch}{1.3}
+      \begin{tabular}{ r r c r r }
+        $p[a]$: & $w\;\Leftrightarrow\;{}x$ &
+          \multirow{4}{*}{
+            \hspace{10pt}
+            \large{$\rightarrow$}
+            \hspace{10pt}
+          }& \\
+        $q[a]$: & $g\;\Leftrightarrow\;{}x$ & &
+          $a$: & $(w|g)\;\Leftrightarrow\;{}x$ \\
+        $p[b]$: & $y\;\Leftrightarrow\;{}z$ & &
+          $b$: & $(y|h)\;\Leftrightarrow\;{}z$ \\
+        $q[b]$: & $h\;\Leftrightarrow\;{}z$ & & \\
+      \end{tabular}
+    }{\caption{Combination.}}
+  \end{subfloatrow}
   \vspace{10pt} \\
-  \begin{subfigure}[b]{\textwidth}
-    \centering
-    \begin{tikzpicture}[
-      >=latex',
-      release/.style={},
-      app/.style={rectangle, draw=black!50, anchor=west},
-      generator/.style={
-        draw,
-        shape border rotate=180,
-        regular polygon,
-        regular polygon sides=3,
-        align=center
-      }
-    ]
-      \pgfdeclarelayer{background}
-      \pgfdeclarelayer{foreground}
-      \pgfsetlayers{background,main,foreground}
-
-      \node [release] (prev1) {Previous Release $n$};
-      \node [below=of prev1.west, app, xshift=2mm] (prev1_app1) {App $1$ $\cdot$ version $w$};
-      \node [below=of prev1_app1.west, app] (prev1_app2) {App $m$ $\cdot$ version $y$};
-      \node [draw=black!50, fit={
-        (prev1) (prev1_app1) (prev1_app2)
-      }] (prev1_box) {};
-
-      \node [generator, right=of prev1] (appup_generator) {$\lambda$};
-
-      \node [release, right=of appup_generator] (curr1) {Current Release};
-      \node [below=of curr1.west, app, xshift=2mm, align=right] (curr1_app1) {App $1$ $\cdot$ version $x$\\\acrshort{appup} $w\Leftrightarrow{}x$};
-      \node [below=of curr1_app1.west, app, yshift=-5mm, align=right] (curr1_app2) {App $m$ $\cdot$ version $z$\\\acrshort{appup} $y\Leftrightarrow{}z$};
-      \node [below=of curr1_app2.west, app, yshift=-4mm] (relup) {$(\star)$ \acrshort{relup}};
-      \node [draw=black!50, fit={
-        (curr1) (curr1_app1) (curr1_app2) (relup)
-      }] (curr1_box) {};
-
-      \path[draw,->,shorten >=2pt] (prev1 -| prev1_box.east) to (appup_generator);
-      \path[draw,->,shorten >=2pt] (curr1 -| curr1_box.west) to (appup_generator);
-
-
-      \path[draw,->,shorten >=5pt] (curr1_app1.189) -| (appup_generator.south east);
-      \path[draw,->,shorten >=5pt] (curr1_app2.189) -| (appup_generator.south east);
-
-      \path[draw,->] (appup_generator.south) |- (relup);
-
-      \begin{pgfonlayer}{background}
-        \node [draw=black!50, fit={
-          (prev1_box) (curr1_box)
-        }, fill=white, double copy shadow={shadow xshift=-4pt,
-        shadow yshift=4pt, fill=white, draw}] (generation) {};
-      \end{pgfonlayer}
-
-    \end{tikzpicture}
-    \subcaption{\acrfull{relup} generation.\\
-    \vspace{10pt} $(\star)$ denotes new files.}
-  \end{subfigure}
-  \caption{Generating upgrade instructions.}
-\end{figure}
-
-\begin{table}[h]
-  \setlength{\tabcolsep}{2pt}
-  \renewcommand{\arraystretch}{1.5}
-  \centering
-  \begin{tabular}{ r r c r r }
-    n: & $w\;\Leftrightarrow\;{}x$ &
-      \multirow{4}{*}{
-        \hspace{15pt}
-        \Large{$\succ$}
-        \hspace{15pt}
-      }& \\
-    n: & $g\;\Leftrightarrow\;{}x$ & &
-      n: & $(w|g)\;\Leftrightarrow\;{}x$ \\
-    $m$: & $y\;\Leftrightarrow\;{}z$ & &
-      m: & $(y|h)\;\Leftrightarrow\;{}z$ \\
-    $m$: & $h\;\Leftrightarrow\;{}z$ & & \\
-  \end{tabular}
-  \caption{Combining collected upgrade instructions.}\label{table:architectures}
-\end{table}
-
+}{\caption{Generating upgrade instructions.}}
 
 \paragraph{Fetching previous releases.} While the project is being compiled, the builder queries the store for a list of the version identifiers of all currently stored artifacts that match the name of the project being built, and had been compiled on the same machine architecture the builder is currently running on. The builder then filters this list to exclude the current combination of version identifier and branch. Note that the branch identifier is only considered for excluding the current combination, but not for other versions, as it might be helpful to generate release upgrades between branches, so that a node may hot-switch its branch by applying a cross-branch upgrade. Each of the remaining releases are then downloaded and extracted to a temporary location.
 
