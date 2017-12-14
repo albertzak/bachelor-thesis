@@ -1,29 +1,43 @@
 \section{Introduction}
 
-% Structure borrowed from Andrej Karpathy
-% http://karpathy.github.io/2016/09/07/phd/
+\subsection{State of the Art}
 
-% 1 - X (+define X if not obvious) is an important problem
+\paragraph{Continuous Integration}
 
-Continuous Deployment of software is an important problem.
-Erlang/OTP Releases has first-class support for zero-downtime hot code upgrades.
+\paragraph{Docker}
 
-% 2 - The core challenges are this and that.
+\paragraph{Erlang/OTP}
 
-The Erlang/OTP release and deployment process requires manual interaction at many steps.
-A developer needs to touch various configuration files to edit version numbers.
-Existing build tools produce upgrade scripts that sometimes need manual tweaking, such as rearranging instructions because of dependency issues.
-Moreover, builds created on developer's machines are not deterministic. Tooling expects previously built releases to exist in specific directories on the local file system.
-Deployment is a manual multi-step process. Current best practices advocate the use of \lstinline{scp} to copy the built release to the production machines. Then one has to attach an Erlang shell to the running node and issue various commands to actually perform the upgrade. This is not an appropriate process for a modern Continuous Delivery pipeline.
+\paragraph{Erlang/OTP Release}
+Erlang/OTP Release Process
+Glossary of Erlang Release terms: app, release, umbrella, appup, relup, target system
+Existing Erlang Build Tools Graph: reltool, systools, relx, rebar3, mix
 
-% 3 - Previous work on X has addressed these with Y, but the problems with this are Z.
+\begin{figure}
+  \begin{tikzpicture}[sibling distance=60mm]
+    \node[draw] (edeliver) at (-2, 7) {edeliver};
+    \node[draw] (beamup) at (2, 7){beamup};
 
-Previous work on automating Erlang/OTP Release generation has addressed parts of the process by abstracting the low-level mechanics of the build step, but tasks such as versioning, release management, and deployment were left to the developer.
+    \node {sasl} [grow'=up] {
+      child {node {systools}
+        child {node {relx}
+          child {node (rebar3) {rebar3}}}
+        child {node (distillery) {distillery}}}
+    };
+    \draw[dashed] (distillery) -- (beamup);
+    \draw (distillery) -- (edeliver);
+  \end{tikzpicture}
+  \caption{Dependencies between tools to generate Erlang/OTP Releases.}
+\end{figure}
 
-% 4 - In this work we do W.
 
-This thesis proposes an integrated pipeline for building and deploying Erlang/OTP projects, including: (1) An architecture of a cloud-based build system that leverages containers to guarantee deterministic builds and stores them in a central release repository; (2) a binary-diffing algorithm that generates upgrade instructions, and a hands-off way for developers to give hints to the algorithm; and (3) a node agent software that applies available upgrades to the running node.
+\subsection{Problem}
 
-% 5 - This has the following appealing properties and our experiments show this and that.
+Hand-incrementing version numbers; Hand-written appup files; Many tools to configure; Storing/Fetching/Unpacking previous releases; Non-obvious OS disparity; dependence on system-installed Erlang libraries
 
-This has the appealing property that deployments become straightforward and stress-free. Developers deploy changes in small, focused increments  multiple times a day.
+
+\subsection{Goal}
+
+Method: Design, prototype Implementation, Evaluation.
+Contribution: A build tool for better DSU support in Erlang/OTP projects that is easy to setup, integrates with the git SCM to use commit hashes as version numbers, handles building and storing OTP Releases and upgrades in an automated way, runs on major CI platforms;
+Evaluation of setup effort [?] and run times on major CI platforms.
