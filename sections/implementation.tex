@@ -62,8 +62,7 @@ When the installer detects it is being executed inside an interactive terminal s
 
 \paragraph{Self-update.} Because the \acrshort{cli} tool is little more than a local clone of a remote repository, distributing and installing updates to the tool itself becomes as trivial as pulling changes from the remote. A convenience wrapper is provided.
 
-\paragraph{Project scaffolding.} To quickly create basic folder structure and files for new projects in various \acrshort{beam} languages, the \acrshort{cli} provides a convenience command.
-
+\paragraph{Project scaffolding.} To quickly create basic folder structure and files for new projects in various \acrshort{beam} languages, the \acrshort{cli} provides a convenience command: \lstinline|beamup new|, which takes the name of the project to scaffold. It then creates a subdirectory of the same name and outputs a minimal deployable codebase, including setting up a Git repository and making an initial commit of the newly generated files.
 
 \subsubsection{Transparent Container Invocation}
 
@@ -423,6 +422,7 @@ The Store is a minimal \acrshort{http} server that stores release artifacts. It 
       $\langle$ \stackanchor{\lstinline|GET|}{\lstinline|POST|} $\rangle$
       \hspace{0.3em}
       \lstinline|/|$\langle$\emph{project name}$\rangle$\lstinline|/|release\lstinline|/|$\langle$\emph{architecture}$\rangle$\lstinline|/|$\langle$\emph{branch}$\rangle$\lstinline|/|$\langle$\emph{version}$\rangle$
+      \vspace{8pt}
 
       Content Type: \lstinline|application/gzip|
 
@@ -435,6 +435,8 @@ The Store is a minimal \acrshort{http} server that stores release artifacts. It 
       \hspace{0.3em}
       \lstinline|/|$\langle$\emph{project name}$\rangle$\lstinline|/|release\lstinline|/|$\langle$\emph{architecture}$\rangle$
 
+      \vspace{8pt}
+      
       Content Type: \lstinline|application/erlang|
 
       \acrfull{etf}
@@ -448,36 +450,33 @@ The Store is a minimal \acrshort{http} server that stores release artifacts. It 
 
 
 \subsection{Test Setup}
+The \lstinline|beamup-io/benchmark| repository was configured to build on push with six \acrshort{ci} platforms: \emph{CircleCI, Codeship, Semaphore, Shippable, Travis CI,} and \emph{Wercker}. Note that only Travis CI offers the choice of running inside a container or on a \acrshort{vm}, while the other providers always build inside a container. To allow comparison between build times on \acrshort{vm} and already-running containers, Travis CI was allowed to pull and cache the \lstinline|amd64/erlang:20.1.2| Docker image before starting the benchmark. Each platform was minimally configured to run a \lstinline|bash| script to perform the same sequence of steps. All releases are stored on the local file system of the \acrshort{ci} host, and the test projects include no external dependencies to avoid build time measurements being affected by the network. The benchmark script performs the following steps:
 
-\paragraph{Setup effort.}
+\begin{enumerate}
+  \item Timed installation of the CLI tool via the single-line command in listing~\ref{lst:curlpipesh}.
+  \item Scaffolding a new Erlang project made up of a minimal application with one supervisor module, using the \lstinline|beamup new| convenience command. This also sets up a Git repository and performs an initial commit.
+  \item Timed generation of a full initial release from an empty cache by invoking \lstinline|beamup|.
+  \item Timed generation of another full initial release, using the same command, and accessing the primed cache from the previous step.
+  \item Inserting one line of code into the start function of the application module to print a message. The change is staged and committed.
+  \item Timed generation of a release that includes upgrade instructions from the initial release, using the same \lstinline|beamup| command, accessing the same primed cache from the previous steps.
+  \item Clearing the cache.
+  \item Timed generation of the same release upgrade, but now from an empty cache.
+\end{enumerate}
 
+After each timed step, the benchmark script posts the measured timings along with an identifier of the \acrshort{ci} platform, the current benchmark revision, and the current step to a central server. Since the platforms are configured to build on every push to the benchmark repository, another script running on a separate machine generated a new commit and pushed the repository every two minutes. For each timed step, the benchmark server collected $n=64$ measurements.
 
-
-
+\cleardoublepage
 \subsection{Results}
 
 \begin{table}[h]
-  \setlength{\tabcolsep}{5pt}
+  \setlength{\tabcolsep}{8.6pt}
   \renewcommand{\arraystretch}{1.5}
   \centering
-  \begin{tabular}{ l l r r r r r }
-    & & & \multicolumn{2}{c}{Cache disabled} & \multicolumn{2}{c}{Cache enabled} \\
-    \acrshort{ci} Provider & Host & Install & Initial & Upgrade & Initial & Upgrade \\
-    \hhline{=======}
-    Circle CI & Con. & 10 \\
-    \hline
-    Codeship & Con. & 10 \\
-    \hline
-    Semaphore & Con. & 10 \\
-    \hline
-    Shippable & Con. & 10 \\
-    \hline
-    Travis CI & \acrshort{vm} & 10 \\
-    \hline
-    Travis CI & Con. & 10 \\
-    \hline
-    Wercker & Con. & 10 \\
-  \end{tabular}
+  \input{sections/table_ci_evaluation}
+  \vspace{6pt}
+  All timings are in seconds [s]. $n=64$.
 
-  \caption{Comparison of setup effort and build time on various \acrshort{ci} providers.}\label{table:ci_evaluation}
+
+  
+  \caption{Comparison of build run time on various \acrshort{ci} providers.}\label{table:ci_evaluation}
 \end{table}
