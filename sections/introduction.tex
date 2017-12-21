@@ -1,43 +1,63 @@
 \section{Introduction}
 
-\subsection{State of the Art}
+\subsection{Erlang/OTP}
 
-\paragraph{Continuous Integration}
+Erlang is a programming language for building concurrent, distributed systems with high availability requirements. Initially designed by Ericsson for programming telephone exchanges, it has been embraced by industries with similar needs: finance, gaming, betting, messaging, middleware and databases. Development of Erlang took place starting in 1986 at the Ericsson Computer Science Laboratory, and in 1998 Erlang was released as Open Source.~\cite{armstrong2007history} \acrshort{otp}, which stands for \acrlong{otp}, is a combination of library applications, design patterns, conventions, and documentation. Erlang is almost always used in conjunction with \acrshort{otp}, hence the name Erlang/\acrshort{otp}.
 
-\paragraph{Docker}
+Erlang is often described as being a functional language, although it is not strictly side-effect free or referentially transparent. It compiles to bytecode which is executed by a \acrfull{vm}. The current Erlang \acrshort{vm} is called the \acrshort{beam}, which stands for \acrlong{beam}. There exist multiple languages that compile to \acrshort{beam} bytecode, most famously \emph{Elixir} and \emph{Lisp Flavored Erlang}. The language's concurrency primitives are actor model processes. Functions can be spawned to create \acrshort{beam} processes, which are different to \acrshort{os} processes or threads, and are much more lightweight and are schedules by the \acrshort{beam}. Erlang/\acrshort{otp} systems commonly run millions of processes, as each process takes less than a kilobyte of space.~\cite{larson}
 
-\paragraph{Erlang/OTP}
+\paragraph{\acrshort{otp} Applications.}
+Erlang code is constructed out of functions, which are defined within \emph{module} files that have the \lstinline|*.erl| extension. \emph{\acrshort{otp} Applications} group related modules into reusable units to provide well-defined start and stop semantics, including an \emph{application resource file} (\lstinline|*.app|) containing additional metadata such as a version string and a list of other applications that this application depends on, which need to be started beforehand. Every application has a dependency on at least \lstinline|kernel| and \lstinline|stdlib|, and both must be specified in the application resource file. \acrshort{otp} also enforces a certain directory structure for applications.
 
-\paragraph{Erlang/OTP Release}
-Erlang/OTP Release Process
-Glossary of Erlang Release terms: app, release, umbrella, appup, relup, target system
-Existing Erlang Build Tools Graph: reltool, systools, relx, rebar3, mix
+\paragraph{\acrshort{otp} Releases.} Whole Erlang/OTP projects are packaged and deployed as \acrshort{otp} Releases. They are described by a release resource (\lstinline|*.rel|) file, which specifies additional metadata, such as the release version, the version of the included \acrfull{erts}, and a list of applications with their respective version strings that are part of the release. From this, release generation tools create a boot script and package the release into a tarball (\lstinline|*.tar.gz|). A packaged release contains everything necessary to bootstrap an \emph{embedded target system} on another machine, also called a \emph{node}. Depending on the tool used to generate the Release, it include additional convenience scripts to upgrade or inspect the target system.
 
-\begin{figure}
-  \begin{tikzpicture}[sibling distance=60mm]
-    \node[draw] (edeliver) at (-2, 7) {edeliver};
-    \node[draw] (beamup) at (2, 7){beamup};
+\paragraph{\acrlong{dsu}.} A core feature of Erlang is its support for \acrfull{dsu}, also referred to as on-the-fly upgrading, or hot code loading. The \acrshort{beam} \acrshort{vm} keeps up to two versions of a module loaded in memory, and both versions of the code may run side by side. \acrshort{otp} provides generic \emph{behaviours} that \emph{callback modules} can implement to normalize start, stop and upgrade semantics, among others. Erlang systems constructed according to \acrshort{otp} patterns, grouped into \acrshort{otp} Applications, and packaged as \acrshort{otp} Releases enjoy additional support for \acrshort{dsu} via instruction files that can hot-upgrade a target system: High-level, often hand-written \acrfull{appup} files, one for each \acrshort{otp} Application, which are fed into release generation tools where they are translated and combined into a single low-level \acrshort{relup}.
 
-    \node {sasl} [grow'=up] {
-      child {node {systools}
-        child {node {relx}
-          child {node (rebar3) {rebar3}}}
-        child {node (distillery) {distillery}}}
+
+\subsection{Problem}\label{sec:problem} Existing release generation tools require manual interaction at various steps, and are generally not trivial to use out of the box in a non-interactive build environment, such as a \acrfull{ci} pipeline. Additionally, there are some pitfalls when developers assemble Releases on, for example, their \emph{macOS} development machines and then attempt to run it in production on \emph{Linux}: This fails with a non-obvious error. To generate a \acrshort{dsu}-capable \acrshort{otp} Release, a developer needs to manually write \acrshort{appup} files and increment version numbers for all changed applications. The \acrshort{otp} Release resource file has an additional, separate version number that needs to be updated between commits to be able to perform \acrshort{dsu}. Then, to generate upgrade instructions, previous Releases need to be fetched and unpacked. Finally, the developer has to invoke various tools to assemble the final package. This process is tedious to perform manually, and impedes frequent deployments of small changes. Conversely, complex code changes are more likely to fail when applied via \acrshort{dsu}. The unfortunate consequence is that developers are discouraged from using Erlang's \acrshort{dsu} capabilities unless absolutely necessary~\cite{ferd}.
+
+\subsection{Contribution}
+
+This work contributes design, implementation and evaluation of a \acrshort{dsu}-capable release generation tool for Erlang/\acrshort{otp} projects that aims to run without user interaction and with as little configuration as possible.
+
+\paragraph{Goal.} The goal is to develop a prototype implementation that produces \acrshort{otp}-compliant release packages. The tool must be easy to setup on major hosted \acrshort{ci} platforms, and integrate with the Git \acrfull{vcs} to use commit hashes as version strings instead of requiring the developer to hand-increment version numbers. It must handle assembling and storing \acrshort{otp} releases including \acrshort{dsu} instructions in a completely automated, hands-off way so that it may be used as part of a \acrshort{ci} pipeline.
+
+\paragraph{Method.} The thesis describes in detail the architectural and design decisions made while iteratively implementing said build tool. The prototype is evaluated for correctness and run time performance on six hosted \acrshort{ci} platforms that provide a free plan: \emph{CircleCI, Codeship, Semaphore, Shippable, Travis CI,} and \emph{Wercker}. Finally, results, advantages and limitations are discussed.
+
+
+\subsection{State of the Art} Most steps from section~\ref{sec:problem} can be automated with existing tools. The contribution of this work, a tool named \emph{BeamUp}, builds on several layers of existing tooling as visualized in figure~\ref{fig:tools}. At least two previous works chase similar goals as BeamUp: \emph{edeliver} and \emph{Distillery}, which are examined in more detail in section~\ref{sec:related_work}. At the lowest level, Erlang/\acrshort{otp} ships with \acrfull{sasl}, which include the two basic building blocks for \acrshort{dsu} support: \lstinline|systools| provides low-level functions for \emph{offline} release generation, and \lstinline|release_handler| is used to perform an \emph{online} hot-upgrade of a running node. Installation of releases is not described in this work.
+Elixir projects are built with \lstinline|mix| (not pictured) and releases are generated with \lstinline|distillery|, which directly calls \lstinline|systools| and handles upgrade instructions itself. Erlang projects, however, need more coaxing: Modules and dependencies are compiled with \lstinline|rebar3|, \acrfull{appup} files are generated with~\cite{rebar3appup}, while release assembly is done by another intermediate tool: \lstinline|relx|.
+
+
+\begin{figure}[h]
+  \begin{tikzpicture}[sibling distance=40mm,
+    level distance=14mm,edge from parent,>=latex']
+    \tikzstyle{edge from parent}=[draw,<-]
+    \node (edeliver) at (0.9, 5) {\lstinline|edeliver|};
+    \node (beamup) at (-2, 6.5) {\lstinline|beamup|};
+
+    \node {\lstinline|SASL|} [grow'=up] {
+      child {node {\lstinline|systools|}
+        child {node (relx) {\lstinline|relx|}
+          child {node (rebar3) {\lstinline|rebar3|}}}
+        child {node (distillery) {\lstinline|distillery|}}}
+      child {node (release_handler) [text=black!40] {\lstinline|release_handler|} edge from parent[draw=black!40]}
     };
-    \draw[dashed] (distillery) -- (beamup);
-    \draw (distillery) -- (edeliver);
+
+    \node (appup) [left=10mm of rebar3,text centered,text width=13mm] {\lstinline|appup| \lstinline|plugin|};
+
+    \draw[->] (appup) -- (rebar3);
+
+    \draw[->] (edeliver) -- (distillery);
+    \draw[->] (edeliver) -- (relx);
+    \draw[->,draw=black!40] (edeliver) -- (release_handler);
+    \draw[->,draw=black!40] (distillery) -- (release_handler);
+
+    \draw[->] (beamup) -- (distillery);
+    \draw[->] (beamup) -- (rebar3);
+    \draw[->] (beamup) -- (appup);
+    \draw[->,dashed,draw=black!40] (beamup.east) .. controls (5,6) and (2.3,3) .. node[very near start,sloped,above,text=black!40] {\small{(planned)}} (release_handler.32);
+
   \end{tikzpicture}
-  \caption{Dependencies between tools to generate Erlang/OTP Releases.}
+  \caption{Dependencies between selected \acrshort{otp} Release handling tools.}\label{fig:tools}
 \end{figure}
-
-
-\subsection{Problem}
-
-Hand-incrementing version numbers; Hand-written appup files; Many tools to configure; Storing/Fetching/Unpacking previous releases; Non-obvious OS disparity; dependence on system-installed Erlang libraries
-
-
-\subsection{Goal}
-
-Method: Design, prototype Implementation, Evaluation.
-Contribution: A build tool for better DSU support in Erlang/OTP projects that is easy to setup, integrates with the git SCM to use commit hashes as version numbers, handles building and storing OTP Releases and upgrades in an automated way, runs on major CI platforms;
-Evaluation of setup effort [?] and run times on major CI platforms.
