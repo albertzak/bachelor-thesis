@@ -1,0 +1,31 @@
+\cleardoublepage
+\section{Future Work}
+
+An an immediately adjacent task would be to design a similarly hands-off way to deploy the built artifacts. This would include bootstrapping infrastructure, performing \acrshort{dsu}, and runtime inspection.
+
+Part of the recent surge of interest in the Erlang/\acrshort{otp} ecosystem is driven by alternative \acrshort{beam} languages, notably Elixir. While the described tool supports Elixir, it should be improved for better handling native dependencies
+
+
+
+Similarly, configuration management.
+
+
+Add code signing of built artifacts
+
+Adapt to other BEAM Languages and SCM systems
+Evaluate support on ARM CPU architectures.
+
+
+investigate how
+
+It would be interesting to collect empirical data on how often automated best-effort \acrshort{appup} generation using~\cite{rebar3appup} or other algorithms for \acrshort{dsu} succeeds or fails in a real-world project.
+
+There is a large body of ongoing research studying update safeness properties of various languages and \acrshort{dsu} systems.
+
+Statically verify update safeness properties, develop an update safety linter
+
+% --
+\cleardoublepage
+\section{Conclusion.}
+
+This work has shown how the Erlang/\acrshort{otp} release generation process can be automated to a degree where
