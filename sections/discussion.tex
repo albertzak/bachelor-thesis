@@ -1,5 +1,45 @@
+\cleardoublepage
+\section{Evaluation}
+
+
+\subsection{Test Setup}
+The \lstinline|beamup-io/benchmark| repository was configured to build on push with six \acrshort{ci} platforms: \emph{CircleCI, Codeship, Semaphore, Shippable, Travis CI,} and \emph{Wercker}. Note that only Travis CI offers the choice of running inside a container or on a \acrshort{vm}, while the other providers always build inside a container. To allow comparison between build times on \acrshort{vm} and already-running containers, Travis CI was allowed to pull and cache the \lstinline|amd64/erlang:20.1.2| Docker image~\cite{docker:erlang} before starting the benchmark. Each platform was minimally configured to run a \lstinline|bash| script to perform the same sequence of steps. All releases are stored on the local file system of the \acrshort{ci} host, and the test projects include no external dependencies to avoid build time measurements being affected by the network. The benchmark script performs the following steps:
+
+\begin{enumerate}
+  \item Timed installation of the \acrshort{cli} tool via the single-line command in listing~\ref{lst:curlpipesh}.
+  \item Scaffolding a new Erlang project made up of a minimal application with one supervisor module, using the \lstinline|beamup new| convenience command. This also sets up a Git repository and performs an initial commit.
+  \item Timed generation of a full initial release from an empty cache by invoking \lstinline|beamup|.
+  \item Timed generation of another full initial release, using the same command, and accessing the primed cache from the previous step.
+  \item Inserting one line of code into the start function of the application module to print a message. The change is staged and committed.
+  \item Timed generation of a release that includes upgrade instructions from the initial release, using the same \lstinline|beamup| command, accessing the same primed cache from the previous steps.
+  \item Clearing the cache.
+  \item Timed generation of the same release upgrade, but now from an empty cache.
+\end{enumerate}
+
+After each timed step, the benchmark script posts the measured timings along with an identifier of the \acrshort{ci} platform, the current benchmark revision, and the current step to a central server. Since the platforms are configured to build on every push to the benchmark repository, another script running on a separate machine generated a new commit and pushed the repository every two minutes. In total, $n=64$ commits were triggered, resulting in $64*7=448$ build runs. During each build run, five steps were benchmarked for run time, giving a projected total amount of measurements of $448*5=2240$.
+
+\cleardoublepage
+\subsection{Results}
+Table~\ref{table:ci_evaluation} lists average time $\bar{s}$ and standard deviation $\sigma$ for each benchmarked step on the respective \acrshort{ci} platforms.
+
+\begin{table}[h]
+  \setlength{\tabcolsep}{8.6pt}
+  \renewcommand{\arraystretch}{1.5}
+  \centering
+  \input{sections/table_ci_evaluation}
+  \vspace{6pt}
+  All timings are in seconds [s]. $n=64$.
+
+  \caption{Comparison of build run time on various \acrshort{ci} providers.}\label{table:ci_evaluation}
+\end{table}
+
+\paragraph{Build failures.} Three out of the $448$ total build runs failed ($0.7\%$). All failures happened on Travis CI while running on a \acrshort{vm}, and all were related to transient network issues. The first failure happened before the tool was first invoked while downloading a precompiled Erlang environment during initialization of the \acrshort{vm} environment.
+The other two failures happened while the build tool \lstinline|rebar3| fetched an external dependency. One time no file was downloaded at all, while the other failure was caused by mismatching checksums.
+
+\cleardoublepage
 \section{Discussion}
 
+The following two sections qualitatively review the contribution with respect to the stated goals, and expose limitations of the current implementation as well as discuss those inherent to the design.
 
 \subsection{Advantages}
 
@@ -18,13 +58,12 @@
 \paragraph{Read only.} The tool never modifies the original project folder. All operations happen on temporary copies, preferably on a \acrshort{ram} disk, and the only artifact produced by a build run is a single deployable tarball. The compressed release artifact is either directly uploaded to a remote store, or written to the file system as specified by an environment variable.
 
 % --
-
 \cleardoublepage
 \subsection{Limitations}
 
 \paragraph{Installer.}\label{sec:curlpipesh} Distributing the \acrshort{cli} tool by downloading a script and piping it to the shell, thereby immediately executing its arbitrary contents may appear to be unsafe. Yet, there is not yet a simpler solution. The \acrshort{cdn} that serves the installer script is configured to only accept connections over \acrshort{tls}, and \lstinline|curl| verifies the validity of the certificate. The installer is wrapped in a shell function to guard against executing a partially downloaded script. Besides, those concerned about the security implications can circumvent the installer by manually cloning a vetted checkout of the \acrshort{cli} repository.
 
-\paragraph{Linux only.} Since the build process always runs inside a Linux container, the resulting release artifact only runs on Linux systems as well. Note that the \acrshort{cli} tool itself may be invoked on other \acrshort{os}es where Docker is supported, such as macOS, as the Docker client will then transparently run the container on a virtualized Linux kernel. Thus, the built release still only supports Linux.
+\paragraph{Linux only.} Since the build process always runs inside a Linux container, the resulting release artifact only runs on Linux systems as well. Note that the \acrshort{cli} tool itself may be invoked on other \acrshort{os}es where Docker is supported, such as macOS, as the Docker client will then transparently run the container on a virtualized Linux kernel.\cite{docker:docs} Thus, the built release still only supports Linux.
 
 \paragraph{Minimal customization.} The tool aims to cover only the most common default project configurations. This implies that all configuration files for the respective tools are in their standard locations, and that the project is set up like the scaffolding generated by the \lstinline|beamup new| command. Advanced features of the build tools such as build profiles or multiple releases are not supported.
 
@@ -34,8 +73,11 @@
 
 \paragraph{Store is an active component.} The builder currently supports two backends for storing built artifacts. The release tarball may either be output to the local file system, or uploaded to the store, which is a server component that must be deployed and maintained. The current feature set implies that an active store component is unnecessary, and a backend for e.g.~a simple object storage would suffice. The \acrshort{api} and implementation of the store server component is incomplete and will in the future be extended to cover additional aspects of release handling, such as deploying releases to a fleet of nodes.
 
-\paragraph{Possibly unnecessary downloading of previous releases.} The tool currently downloads the entirety of all previous releases to generate upgrade instructions. An alternative would be to locally check out the previous commits to upgrade from, compile each previous release from the checked out code, and then to compare them to generate upgrade instructions. This work has not evaluated advantages or limitations of a local-only approach.
+\paragraph{Possibly unnecessary downloading of previous releases.} The tool currently downloads the entirety of all previous releases to generate upgrade instructions. An alternative would be to locally check out the previous commits to upgrade from, compile each previous release from the checked out code, and then to compare them to generate upgrade instructions.~\cite{rebar3appup} This work has not evaluated advantages or limitations of a local-only approach.
 
-\paragraph{Machine architecture support.} Though untested, the tool should be able to run on various machine architectures, and produce releases runnable on the respective architectures: \lstinline|amd64|, \lstinline|arm32v7|, \lstinline|arm64v8|, \lstinline|i386|, \lstinline|ppc64le|, \lstinline|s390x|. However,  it has not been tested on any machine architectures except \lstinline|amd64| and \lstinline|arm64v8|. There is also no cross-compilation support, or support for compiling additional native dependencies as Erlang \acrfull{nif}.
+\paragraph{Transient network failures.} Out of $448$ test runs, three failed. Two failed attempts to download a dependency could have been caught and retried by the build tool. Retrying on network failures should arguably be a concern of the lower-level tool which initiated the request, yet an equal case could be made to handle them in the proposed tool. Unstable builds interfere with the \acrshort{ci} workflow, thus only irrecoverable errors should bubble up to affect the \acrshort{ci} build status.
 
-\paragraph{Best-effort \acrshort{appup} generation.} The build tool trades full control over the build process for hands-off operation. In certain situations with complicated dependencies between modules, processes, or even nodes the algorithm for generating \acrfull{appup}files may produce incorrect results.
+\paragraph{Machine architecture support.} Though untested, the tool should be able to run on various machine architectures, and produce releases runnable all of the architectures for which official Erlang/OTP Docker images~\cite{docker:erlang} are available: \lstinline|amd64|, \lstinline|arm32v7|, \lstinline|arm64v8|, \lstinline|i386|, \lstinline|ppc64le|, \lstinline|s390x|. However, the tool has not been tested on any machine architectures except \lstinline|amd64|. There is also no cross-compilation support, nor is it expected that dependencies in the form of Erlang \acrfull{nif}~\cite{doc:otp} can be part of projects build with the proposed tool.
+
+\paragraph{Best-effort \acrshort{appup} generation.} The build tool trades full control over the build process for hands-off operation. In certain situations with complicated dependencies between modules, processes, or even nodes the algorithm~\cite{rebar3appup}
+for generating \acrfull{appup} files may produce incorrect results, leading to failed \acrshort{dsu} attempts. However, if such situations are known beforehand, e.g.~through careful testing of upgrades, the developer may add hand-written \acrshort{appup} template files (\lstinline|*.appup.src|) to the respective applications to guide the algorithm.

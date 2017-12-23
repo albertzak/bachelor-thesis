@@ -2,7 +2,7 @@
 
 \subsection{Command Line Tool}
 
-\subsubsection{Launcher} The main point of entry to the \acrshort{cli} build tool is the \emph{launcher} executable. Acting as the starting point for all invocations, it is implemented as a \lstinline|bash| script mainly wrapping the \emph{Docker} client. To provide a repeatable build environment, the launcher prefers to start a well-known container to run the given command in. If, however, the launcher is invoked as part of an already-running \acrshort{ci} container, it is not possible to start a new one. Thus, the launcher first has to detect whether it is able to start containers. In case it is able to, the launcher has to pull the correct image for the host's machine architecture in combination with the requested Erlang/OTP version, set up volume mounts and environment variables, and invoke the Docker client to start the container. If the launcher is already running inside a container, the responsibility is reduced to passing through the given arguments to the \emph{container entrypoint}. The following paragraphs describe how each component of the launch sequence is implemented.
+\subsubsection{Launcher} The main point of entry to the \acrshort{cli} build tool is the \emph{launcher} executable. Acting as the starting point for all invocations, it is implemented as a \lstinline|bash| script mainly wrapping the \emph{Docker} client. To provide a repeatable build environment, the launcher prefers to start a well-known container to run the given command in. If, however, the launcher is invoked as part of an already-running \acrshort{ci} container, it is not possible to start a new one. Thus, the launcher first has to detect whether it is able to start containers. In case it is able to, the launcher has to pull the correct image for the host's machine architecture in combination with the requested Erlang/OTP version, set up volume mounts and environment variables, and invoke the Docker client to start the container. If the launcher is already running inside a container, the responsibility is reduced to passing through the given arguments to the \emph{container entrypoint}. The following paragraphs describe how each component of the launch sequence, including installation of the \acrshort{cli} tool itself, is implemented.
 
 \begin{figure}[h]
   \centering
@@ -49,7 +49,7 @@
   \caption{Execution sequence of build pipeline components.}
 \end{figure}
 
-\paragraph{Installation.} The recommended way to install the \acrshort{cli} tool is by downloading a \lstinline|bash| script and piping it to the shell. This pattern is informally known as ``curl pipe sh'', and while common because of its simplicity, brings security implications which are discussed in section~\ref{sec:curlpipesh}. The \acrfull{cdn} \emph{Cloudflare}, is used to ensure the installer script is exclusively served with \acrfull{tls}.
+\paragraph{Installation.} The \acrshort{cli} tool is installed by downloading a \lstinline|bash| script and piping it to the shell. This pattern is informally known as \emph{``curl pipe sh''} and commonly used because of its simplicity. However, its appearance may deter security-conscious users, a limitation which is discussed in section~\ref{sec:curlpipesh}. The \acrfull{cdn} \emph{Cloudflare}, is used to ensure the installer script is exclusively served with \acrfull{tls}.
 
 \begin{lstlisting}[
   label={lst:curlpipesh},
@@ -58,17 +58,15 @@
 curl https://get.beamup.io/install | /bin/sh
 \end{lstlisting}
 
-When the installer detects it is being executed inside an interactive terminal session, it pauses for a few seconds to give the user a chance to abort installation. Next, the installer clones the \acrshort{cli} repository to the \lstinline|~/.beamup| folder of the current user's home directory. Note that cloning a repository keeps file permissions intact, including the executable bits that are set on the main \acrshort{cli} launcher script. At no point are super user permissions needed, consequently the installer first attempts to create a symbolic link to the \acrshort{cli} launcher, and optionally falls back to displaying instructions on how to add the just-installed tool to the executable path. Finally, to make sure that the installation was successful, the launcher is invoked for a self-test.
+When the installer detects it is being executed inside an interactive terminal session, it pauses for a few seconds to give the user a chance to abort installation. Next, the installer clones the \acrshort{cli} repository \lstinline|beamup-io/cli| to the \lstinline|~/.beamup| folder of the current user's home directory. Note that cloning a repository keeps file permissions intact, including the executable bit that is set on the main \acrshort{cli} launcher script. At no point are super user permissions needed. To allow invoking \lstinline|beamup| inside any project directory, the installer first attempts to create a symbolic link to the launcher in \lstinline|/usr/local/bin/beamup|. Optionally, it falls back to displaying instructions on how to add the just-installed tool to the executable path. Finally, to make sure that the installation was successful, the tool is invoked for a self-test.
 
-\paragraph{Self-update.} Because the \acrshort{cli} tool is little more than a local clone of a remote repository, distributing and installing updates to the tool itself becomes as trivial as pulling changes from the remote. A convenience wrapper is provided.
+\paragraph{Self-update.} Because the \acrshort{cli} tool is little more than a local clone of a remote repository, distributing and installing updates to the tool itself becomes as trivial as pulling changes from the remote. A convenience wrapper is provided as \lstinline|beamup update|.
 
-\paragraph{Project scaffolding.} To quickly create basic folder structure and files for new projects in various \acrshort{beam} languages, the \acrshort{cli} provides a convenience command: \lstinline|beamup new|, which takes the name of the project to scaffold. It then creates a subdirectory of the same name and outputs a minimal deployable codebase, including setting up a Git repository and making an initial commit of the newly generated files.
+\paragraph{Project scaffolding.} To quickly create a basic folder and file structure for new projects in various \acrshort{beam} languages, the \acrshort{cli} provides a convenience command: \lstinline|beamup new|. It takes the name of the project to scaffold and creates a subdirectory of the same name. Inside, it outputs a minimal deployable codebase, including setting up a Git repository and making an initial commit.
 
 \subsubsection{Transparent Container Invocation}
 
-All commands first go through the launcher, which must set up a container to run the given command in; or run the command directly. Many \acrshort{ci} platforms confine the whole build process to a container that has already been set up and started, allowing only limited configuration of the container's parameters. Since it is not always possible to start a clean container, the tool must be able to either operate inside an already-running \acrshort{ci} container, or transparently start a new container and pass control inside.
-
-First, the launcher  attempts to detect where it is being called from by parsing the \emph{\acrfull{cgroups}} file. While detection in this way is widespread, it is not recommended, since it relies on an implementation detail of the container runtime. However, work to add container introspection capabilities is ongoing\footnote{\url{https://github.com/moby/moby/pull/26331}}. To provide a temporary solution until an interface is finalized and widely deployed, the tool checks for artifacts of common container runtime implementations in the \acrshort{cgroups} file: \emph{Docker}, \emph{\acrfull{lxc}}, and \emph{\acrfull{aws} \acrfull{ecs}}. If the tool is being run inside a container, execution is simply passed to the \emph{container entrypoint} along with all arguments under the assumption that the container's environment is sufficiently correct, i.e.~has the correct version of Erlang/OTP installed.
+All commands first go through the launcher, which attempts to set up a container to run the given command in. Many \acrshort{ci} platforms confine the whole build process to a container that has already been set up and started. Conversely, the tool must be able to either operate inside an already-running \acrshort{ci} container, or transparently start a new container and pass control inside. First, the launcher attempts to detect whether it is being called inside a container. It does so by parsing the \emph{control groups (cgroups)} file. While detection in this way is widespread, it is not recommended, since it relies on an implementation detail of the container runtime. However, work to add container introspection capabilities is ongoing\footnote{\url{https://github.com/moby/moby/pull/26331}}. To provide a temporary solution until an interface is finalized and widely deployed, the tool checks for artifacts of common container runtime implementations in the cgroups file: \emph{Docker}, \emph{Linux Containers (lxc)}, and \emph{\acrfull{aws} ECS}. If the tool is being run inside a container, execution is simply passed to the \emph{container entrypoint} along with all arguments under the assumption that the container's environment is sufficiently correct, i.e.~has the requested version of Erlang/OTP preinstalled.
 
 \paragraph{Determining the base image.} When the launcher determines that it is able to start a container to run the build in, i.e.~the tool is being invoked inside a \acrshort{vm} or on bare metal, it needs to consider the following two attributes to determine which image to instantiate a container from:
 \begin{enumerate*}[label=(\roman*)]
@@ -76,7 +74,7 @@ First, the launcher  attempts to detect where it is being called from by parsing
   \item the host's machine architecture.
 \end{enumerate*}
 
-Concerning the machine architecture, official builds of Erlang/OTP for various architectures are provided on the \emph{Docker Hub}. Such images are available under the namespace of the respective architecture identifiers as used by the \emph{Go} programming language. A challenge lies in reliably normalizing the machine architecture as reported by \lstinline|uname -m|. Note that since version \emph{17.06 Docker} implicitly pulls images for the correct architecture. However, because the tool is designed to support \emph{Docker} down to version \emph{1.12}, the launcher has to manually determine the architecture and map it to an image namespace identifier using the normalization given in table~\ref{table:architectures}.
+Official builds of Erlang/OTP for various architectures are provided on the \emph{Docker Hub}. Such images are available under the namespace of the respective architecture identifier as used by the \emph{Go} programming language. A challenge lies in reliably normalizing the machine architecture as reported by \lstinline|uname -m|. Note that starting from version \emph{17.06}, Docker implicitly pulls images for the correct architecture.~\cite{docker:docs} However, because the tool is designed to support Docker down to version \emph{1.12}, the launcher has to manually determine the architecture and map it to an image namespace identifier using the normalizations given in table~\ref{table:architectures}.
 
 \begin{table}
   \setlength{\tabcolsep}{10pt}
@@ -89,7 +87,7 @@ Concerning the machine architecture, official builds of Erlang/OTP for various a
     \lstinline|i386 i686 i686-64 i686-AT386| & \lstinline|i386| \\
     \lstinline|s390x s390| & \lstinline|s390x| \\
     \lstinline|ppc ppc64 ppcle ppc64le| & \lstinline|ppc64le| \\
-    \emph{other} & \lstinline|amd64| \\
+    $\langle$\emph{other}$\rangle$ & \lstinline|amd64| \\
   \end{tabular}
   \caption{Mapping between reported machine architecture and image identifier.}\label{table:architectures}
 \end{table}
@@ -139,8 +137,8 @@ Note that if the launcher is unable to start a container, caching would have to 
   \centering
   \begin{tabularx}{\textwidth}{l X X}
     Host & Launcher & Container entrypoint \\
-    \hline
-    \emph{Working directory} &
+    \hhline{===}
+    $\langle$\emph{Working directory}$\rangle$ &
       Passed as \lstinline|PROJECT_DIR| \newline
       either as-is or with container path of mount point &
       Passed through \\
@@ -172,11 +170,12 @@ Note that if the launcher is unable to start a container, caching would have to 
     \lstinline|STORE_SECRET| & Passed through & Passed through \\
     \hline
     \lstinline|DEBUG| & Passed through & Passed through \\
+    \hline
   \end{tabularx}
   \caption{Transformation of environment variables between host and container.}\label{table:envvars}
 \end{table}
 
-Since the tool must run without interactivity, the launcher exports the \lstinline|TERM| variable set to ``\lstinline|dumb|''. Additionally, the contents of the host's global \emph{gitignore} file are read into an environment variable, passed into the container entrypoint, to be written out again. This avoids situations where host sees the working tree as clean, while the builder refuses to run because files may be present that would be ignored by the host, but not by the builder. Note that neither the architecture of the host, nor the architecture part of the image identifier are passed into the container, as the builder internally retrieves the system architecture string as reported by Erlang/OTP, which differs from the identifier used at the launcher stage. Lastly, authentification credentials for the store are passed through, as is a flag to enable verbose debug output. See table~\ref{table:envvars} for an overview of how various parts of the build pipeline use environment variables to pass and transform configuration.
+Since the tool must run without interactivity, the launcher exports the \lstinline|TERM| variable set to ``\lstinline|dumb|''. Additionally, the contents of the host's global \emph{gitignore} file~\cite{man:git} are read into an environment variable, passed into the container entrypoint, to be written out again. This avoids situations where host sees the working tree as clean, while the builder refuses to run because files may be present that would be ignored by the host, but not by the builder. Note that neither the architecture of the host, nor the architecture part of the image identifier are passed into the container, as the builder internally retrieves the system architecture string as reported by Erlang/OTP, which differs from the identifier used at the launcher stage. Lastly, authentification credentials for the store are passed through, as is a flag to enable verbose debug output. See table~\ref{table:envvars} for an overview of how various parts of the build pipeline use environment variables to pass and transform configuration.
 
 \subsubsection{Container Entrypoint}
 
@@ -193,7 +192,7 @@ As stated above, the \acrshort{cli} may be launched inside an already-running co
 \paragraph{Sanity checks.} Recall the requirement that a version number of a built release uniquely identifies a committed state of the code base at one point in time. Therefore, the build tool must ensure that the project is in a clean state, i.e.~the state of all tracked files must be equal to that of the last commit, before starting the build process. Note that the working tree may very well contain untracked files that are specific to the currently checked out branch, such as configuration. Since configuration data often includes sensitive credentials, best practices recommend to keep such files out of version control by instructing the \acrshort{vcs} to ignore them. Conversely, the built artifact must include such configuration data. Sanity checks are applied to the repository to make sure that \begin{enumerate*}[label=(\roman*)]
   \item no tracked files have been modified since the last checked out commit; and
   \item that there are no new untracked and un-ignored files present in the working tree.
-\end{enumerate*}
+\end{enumerate*}~\cite{man:git}
 Directory layout must follow \acrshort{otp} conventions, and configuration files may not have been moved from their default locations.
 
 \paragraph{Elixir support.}
@@ -366,49 +365,6 @@ Recall that assembling a release upgrade used to require the developer to first 
 
 \paragraph{Packaging and storing the release.} With a final, merged \acrfull{relup} file in place, the release is ready to be packaged as a gzip-compressed tarball (\lstinline|*.tar.gz|), which contains everything needed to start a \emph{target system} from scratch, or to hot-upgrade a system running any of the versions of any branches that were present in the store when the build process was started. The resulting tarball artifact is sent to one of the builder's store backends: local or remote. The local backend saves the artifact to the host's file system, and is meant for testing purposes. The recommended remote store backend uploads the artifact to a central store.
 
-\begin{figure}[h]
-  \centering
-  \vspace{5mm}
-  \begin{forest}
-    dir tree
-    [./$\langle$\emph{project name}$\rangle$-$\langle$\emph{release version}$\rangle$.tar.gz
-      [bin]
-      [erts-$\langle$\emph{erts version}$\rangle$\quad\ldots]
-      [lib
-        [$\langle$\emph{application 1 name}$\rangle$-$\langle$\emph{app.~1 version}$\rangle$
-          [ebin
-            [$\langle$\emph{application name}$\rangle$.app]
-            [$\langle$\emph{module 1\ldots{}m}$\rangle$.beam]
-          ]
-          [include
-            [$\langle$\emph{header 1\ldots{}m}$\rangle$.hrl]
-          ]
-        ]
-        [$\langle$\emph{application n name}$\rangle$-$\langle$\emph{app.~n version}$\rangle$
-          [ebin\quad\ldots]
-          [include\quad\ldots]
-        ]
-        [kernel-$\langle$\emph{kernel version}$\rangle$\quad\ldots]
-        [sasl-$\langle$\emph{sasl version}$\rangle$\quad\ldots]
-        [stdlib-$\langle$\emph{stdlib version}$\rangle$\quad\ldots]
-      ]
-      [releases
-        [$\langle$\emph{release version}$\rangle$
-          [$\langle$\emph{project name}$\rangle$.rel]
-          [relup]
-          [start.boot]
-          [sys.config]
-          [vm.args]
-        ]
-        [$\langle$\emph{project name}$\rangle$.rel]
-        [RELEASES]
-        [start\_erl.data]
-      ]
-    ]
-  \end{forest}
-  \caption{Directory tree of an \acrshort{otp} Release artifact.}
-\end{figure}
-
 \cleardoublepage
 \subsection{Store}
 
@@ -444,39 +400,3 @@ The Store is a minimal \acrshort{http} server that stores release artifacts. It 
     }{\caption{Querying available versions and branches.}\label{fig:api_list}}
   \end{subfloatrow}
 }{\caption{\acrshort{rest} \acrshort{api} of the store component.}}
-
-\cleardoublepage
-\section{Evaluation}
-
-
-\subsection{Test Setup}
-The \lstinline|beamup-io/benchmark| repository was configured to build on push with six \acrshort{ci} platforms: \emph{CircleCI, Codeship, Semaphore, Shippable, Travis CI,} and \emph{Wercker}. Note that only Travis CI offers the choice of running inside a container or on a \acrshort{vm}, while the other providers always build inside a container. To allow comparison between build times on \acrshort{vm} and already-running containers, Travis CI was allowed to pull and cache the \lstinline|amd64/erlang:20.1.2| Docker image before starting the benchmark. Each platform was minimally configured to run a \lstinline|bash| script to perform the same sequence of steps. All releases are stored on the local file system of the \acrshort{ci} host, and the test projects include no external dependencies to avoid build time measurements being affected by the network. The benchmark script performs the following steps:
-
-\begin{enumerate}
-  \item Timed installation of the CLI tool via the single-line command in listing~\ref{lst:curlpipesh}.
-  \item Scaffolding a new Erlang project made up of a minimal application with one supervisor module, using the \lstinline|beamup new| convenience command. This also sets up a Git repository and performs an initial commit.
-  \item Timed generation of a full initial release from an empty cache by invoking \lstinline|beamup|.
-  \item Timed generation of another full initial release, using the same command, and accessing the primed cache from the previous step.
-  \item Inserting one line of code into the start function of the application module to print a message. The change is staged and committed.
-  \item Timed generation of a release that includes upgrade instructions from the initial release, using the same \lstinline|beamup| command, accessing the same primed cache from the previous steps.
-  \item Clearing the cache.
-  \item Timed generation of the same release upgrade, but now from an empty cache.
-\end{enumerate}
-
-After each timed step, the benchmark script posts the measured timings along with an identifier of the \acrshort{ci} platform, the current benchmark revision, and the current step to a central server. Since the platforms are configured to build on every push to the benchmark repository, another script running on a separate machine generated a new commit and pushed the repository every two minutes. For each timed step, the benchmark server collected $n=64$ measurements.
-
-\cleardoublepage
-\subsection{Results}
-
-\begin{table}[h]
-  \setlength{\tabcolsep}{8.6pt}
-  \renewcommand{\arraystretch}{1.5}
-  \centering
-  \input{sections/table_ci_evaluation}
-  \vspace{6pt}
-  All timings are in seconds [s]. $n=64$.
-
-
-  
-  \caption{Comparison of build run time on various \acrshort{ci} providers.}\label{table:ci_evaluation}
-\end{table}
