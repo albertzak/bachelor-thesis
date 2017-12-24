@@ -11,6 +11,6 @@ Ongoing research identifies update safeness properties of various languages and 
 
 % --
 \cleardoublepage
-\section{Conclusion.}
+\section{Conclusion}
 
 This work has shown how the Erlang/\acrshort{otp} release generation process can be automated to a degree where it is fit to serve as part of a \acrfull{ci} pipeline. The contribution is a higher-level build tool named \emph{BeamUp} that prioritizes \emph{ease of setup} and \emph{hands-off operation}. The tool takes Erlang and Elixir projects and assembles, without user interaction, an \acrshort{otp}-compliant Release artifact capable of \acrfull{dsu} or ``hot code loading''. In combination with a central release store, the build tool uploads and retrieves artifacts as needed to automatically generate upgrade instructions on a best-effort basis. Numeric versions are replaced with cryptographic commit hashes, allowing reliable identification of code running in the field. To provide a clean and reproducible build environment, the tool transparently compiles the project inside a container. An evaluation has demonstrated that the tool works correctly and with comparable performance on major hosted \acrshort{ci} platforms.
