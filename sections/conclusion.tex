@@ -1,31 +1,16 @@
 \cleardoublepage
 \section{Future Work}
 
-An an immediately adjacent task would be to design a similarly hands-off way to deploy the built artifacts. This would include bootstrapping infrastructure, performing \acrshort{dsu}, and runtime inspection.
+Following the release generation process described in this work, an immediately adjacent task would be to design a similarly hands-off way to deploy the built artifacts. Ideally, this would require only a one-time bootstrapping step to point a node to the release store. A node agent would take care of pulling and installing releases, performing \acrshort{dsu}, logging and runtime introspection.
 
-Part of the recent surge of interest in the Erlang/\acrshort{otp} ecosystem is driven by alternative \acrshort{beam} languages, notably Elixir. While the described tool supports Elixir, it should be improved for better handling native dependencies
+Configuration management was only touched upon lightly in this work and relied on configuration files packaged inside the release artifacts. Since such configuration often includes sensitive data, more research is needed on how to merge the notion of \acrshort{dsu} with changing configuration at the same time; while separating delivery of software from the delivery of its configuration. The security aspects of the release store protocol and its implementation should be reviewed before production usage.
 
+Part of the recent surge of interest in the Erlang/\acrshort{otp} ecosystem is driven by alternative \acrshort{beam} languages, notably Elixir. While the described tool can assemble \acrshort{otp} Releases of Elixir projects, its support should be improved with respect to other build stages, such as preprocessing static assets for a web framework, or compiling native dependencies. Additionally, the tool's claimed support for other machine architectures, and possible concepts to achieve cross-compilation might be evaluated.
 
-
-Similarly, configuration management.
-
-
-Add code signing of built artifacts
-
-Adapt to other BEAM Languages and SCM systems
-Evaluate support on ARM CPU architectures.
-
-
-investigate how
-
-It would be interesting to collect empirical data on how often automated best-effort \acrshort{appup} generation using~\cite{rebar3appup} or other algorithms for \acrshort{dsu} succeeds or fails in a real-world project.
-
-There is a large body of ongoing research studying update safeness properties of various languages and \acrshort{dsu} systems.
-
-Statically verify update safeness properties, develop an update safety linter
+Ongoing research identifies update safeness properties of various languages and \acrshort{dsu} systems. It would be interesting to collect empirical data on how often automated best-effort \acrshort{appup} generation using~\cite{rebar3appup} or other algorithms succeeds or fails in a real-world \acrshort{dsu} project. Even though it may be hard to statically prove certain update safeness properties in dynamically typed languages such as Erlang, developing a set of heuristics could help to identify possibly \acrshort{dsu}-unsafe changes.
 
 % --
 \cleardoublepage
 \section{Conclusion.}
 
-This work has shown how the Erlang/\acrshort{otp} release generation process can be automated to a degree where
+This work has shown how the Erlang/\acrshort{otp} release generation process can be automated to a degree where it is fit to serve as part of a \acrfull{ci} pipeline. The contribution is a higher-level build tool named \emph{BeamUp} that prioritizes \emph{ease of setup} and \emph{hands-off operation}. The tool takes Erlang and Elixir projects and assembles, without user interaction, an \acrshort{otp}-compliant Release artifact capable of \acrfull{dsu} or ``hot code loading''. In combination with a central release store, the build tool uploads and retrieves artifacts as needed to automatically generate upgrade instructions on a best-effort basis. Numeric versions are replaced with cryptographic commit hashes, allowing reliable identification of code running in the field. To provide a clean and reproducible build environment, the tool transparently compiles the project inside a container. An evaluation has demonstrated that the tool works correctly and with comparable performance on major hosted \acrshort{ci} platforms.
