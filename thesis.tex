@@ -6,8 +6,16 @@
             pdfsubject={Bachelor's Thesis},
             hidelinks,
             driverfallback=hypertex]{hyperref}
+\usepackage[english]{babel}
+\usepackage{lmodern}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+% \usepackage{arialu}
+% \renewcommand{\familydefault}{\sfdefault}
+% \normalfont
+\renewcommand{\rmdefault}{phv} % Arial
+\renewcommand{\sfdefault}{phv} % Arial
+
 \usepackage{geometry}
 \usepackage{bookmark}
 \usepackage{listings}
@@ -64,7 +72,7 @@
 \input{glossary}
 
 \lstset{
-  language=erlang,
+  language=bash,
   numbers=left,
   numberstyle=\small\color{lightgray},
   basicstyle=\ttfamily,
@@ -83,6 +91,9 @@
 \geometry{a4paper, left=30mm, right=25mm, top=30mm, bottom=30mm}
 
 \begin{document}
+
+
+\input{sections/preamble}
 
 \thispagestyle{empty}
 \include{sections/abstract}

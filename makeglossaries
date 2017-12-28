@@ -2,5 +2,5 @@
 exec docker run --rm -i \
   -v "$PWD":/data \
   -w "/data" \
-  cynipe/gitdags \
+  "$TEX_IMAGE" \
   makeglossaries "$@"
