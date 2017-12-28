@@ -92,22 +92,33 @@
 
 \begin{document}
 
-
+\pagestyle{empty}
 \input{sections/preamble}
 
-\thispagestyle{empty}
-\include{sections/abstract}
-
+\newpage
+\pagestyle{fancy}
 \pagenumbering{roman}
-
-\tableofcontents{}
-
-\cleardoublepage
+\include{sections/abstract}
 
 \renewcommand{\glsnamefont}[1]{\textbf{#1}}
 \doublespacing
-\printglossary[nonumberlist,type=\acronymtype]
+\printglossary[title=List of Abbreviations,nonumberlist,type=\acronymtype]
 \singlespacing
+
+\cleardoublepage
+
+\section*{Key Terms}
+Continuous Integration\\
+Git \\
+Tooling \\
+Erlang \\
+Elixir \\
+Automation \\
+Dynamic Software Updating \\
+
+\cleardoublepage
+
+\tableofcontents{}
 
 \cleardoublepage
 
