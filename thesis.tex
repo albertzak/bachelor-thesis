@@ -2,8 +2,8 @@
 
 \usepackage[pdftex,
             pdfauthor={Albert Zak},
-            pdftitle={Design, Implementation and Evaluation of a Hands-off Build Pipeline for Erlang/OTP Projects},
-            pdfsubject={Bachelor's Thesis},
+            pdftitle={A Hands-Off Build Pipeline for Erlang/OTP Projects: Design, Implementation, and Evaluation},
+            pdfsubject={Bachelor Thesis},
             hidelinks,
             driverfallback=hypertex]{hyperref}
 \usepackage[english]{babel}
@@ -16,6 +16,7 @@
 \renewcommand{\rmdefault}{phv} % Arial
 \renewcommand{\sfdefault}{phv} % Arial
 
+\usepackage{microtype}
 \usepackage{geometry}
 \usepackage{bookmark}
 \usepackage{listings}
@@ -36,6 +37,8 @@
 \usepackage[singlespacing]{setspace}
 \usepackage[acronym,nopostdot,style=super,nonumberlist,nogroupskip]{glossaries}
 \usepackage{fancyhdr}
+\usepackage{hyphenat}
+\hyphenation{name-space}
 \usepackage{forest}
 \forestset{
   dir tree/.style={
@@ -91,6 +94,8 @@
 \geometry{a4paper, left=30mm, right=25mm, top=30mm, bottom=30mm}
 
 \begin{document}
+
+\frenchspacing
 
 \pagestyle{empty}
 \input{sections/preamble}
